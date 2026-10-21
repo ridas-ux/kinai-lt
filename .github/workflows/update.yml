@@ -36,6 +36,7 @@ jobs:
           git config user.email "kinas-bot@users.noreply.github.com"
           git add site/data.json
           git diff --cached --quiet || git commit -m "Repertuaras $(date -u +%F\ %H:%M)"
+          git pull --rebase --autostash origin main || true
           git push
 
       - uses: actions/configure-pages@v5
