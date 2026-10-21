@@ -63,7 +63,7 @@ ${image ? `<meta property="og:image" content="${esc(image)}">` : ""}
 .day-h{font-family:var(--display);font-weight:800;font-size:22px;text-transform:uppercase;margin:12px 0 0}
 .back{display:inline-flex;font-weight:700;text-decoration:none;padding:10px 14px;border-radius:10px;background:var(--chip);justify-self:start}
 </style>
-<script data-goatcounter="https://kinai.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<script data-goatcounter="https://ridas.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 ${extra}
 </head>
 <body>
