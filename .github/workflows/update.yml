@@ -30,6 +30,9 @@ jobs:
       - name: Surinkti repertuarą
         run: node scripts/scrape.mjs
 
+      - name: Sugeneruoti filmų puslapius
+        run: node scripts/pages.mjs
+
       - name: Išsaugoti data.json saugykloje
         run: |
           git config user.name "kinas-bot"
