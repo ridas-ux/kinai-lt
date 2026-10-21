@@ -1,6 +1,6 @@
 // Bendros pagalbinės funkcijos: užklausos, laikas, pavadinimų normalizavimas, žanrai.
 
-export const UA = "Mozilla/5.0 (compatible; KinaiLtBot/1.0; +https://kinai.lt)";
+export const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
 export async function getJSON(url, opts = {}) {
   const res = await fetchRetry(url, opts);
