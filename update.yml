@@ -1,0 +1,55 @@
+name: Atnaujinti repertuarą
+
+on:
+  schedule:
+    - cron: "0 3 * * *"    # kasdien ~06:00 Vilniaus laiku (žiemą 05:00)
+    - cron: "0 12 * * *"   # dar kartą ~15:00 – pasikeitusiems seansams
+  workflow_dispatch:        # rankinis paleidimas: Actions → Run workflow
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Surinkti repertuarą
+        run: node scripts/scrape.mjs
+
+      - name: Išsaugoti data.json saugykloje
+        run: |
+          git config user.name "kinas-bot"
+          git config user.email "kinas-bot@users.noreply.github.com"
+          git add site/data.json
+          git diff --cached --quiet || git commit -m "Repertuaras $(date -u +%F\ %H:%M)"
+          git push
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
