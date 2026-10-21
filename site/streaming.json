@@ -1,0 +1,12 @@
+{
+  "_info": "Rankiniu būdu pildomas sąrašas: tik patikrinti pavadinimai, kurie TIKRAI yra platformoje Lietuvoje. p: nf = Netflix, pv = Prime Video, hbo = HBO Max. k: Filmas / Serialas.",
+  "updated": "2026-10-19",
+  "source": "FlixPatrol TOP 10 Lietuvoje",
+  "top": {
+    "nfMovies": ["Animals", "Evil Dead Burn", "Unabomber", "Nosferatu", "Ice Age: Collision Course", "White Chicks", "Ice Age", "Ice Age: The Meltdown", "Ice Age: Continental Drift", "Ice Age: Dawn of the Dinosaurs"],
+    "nfShows": ["Below", "The Diplomat", "Instadocs: AI Gone Wild", "East of Eden", "The Trap", "Love Is Blind", "Tyson", "Monster: The Lizzie Borden Story", "The Gentlemen", "Haunted Hotel"],
+    "hbo": ["Crystal Lake", "Lanterns", "Zmora", "Youth", "4 Blocks Zero", "The Serial Killer Connection", "Paolo", "90 Day Fiancé", "A Killer Among Friends", "Friday the 13th"],
+    "pv": []
+  },
+  "extra": []
+}

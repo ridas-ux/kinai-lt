@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kinai.lt – Vilniaus kino teatrų repertuaras</title>
+<meta name="description" content="Visų Vilniaus kino teatrų seansai vienoje vietoje: Forum Cinemas, Apollo, Vue, Pasaka ir Skalvija. Rask filmą ir pirk bilietą.">
+<meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#13111a" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Kinai.lt – Vilniaus kino teatrų repertuaras">
+<meta property="og:url" content="https://kinai.lt/">
+<link rel="canonical" href="https://kinai.lt/">
+<meta property="og:description" content="Visų Vilniaus kino teatrų seansai vienoje vietoje.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d1a24'/%3E%3Ctext x='16' y='23' font-family='Arial Black,Arial' font-size='18' font-weight='900' fill='%23e2533b' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1 class="logo">Kinai<span>.</span>lt</h1>
+      <div class="bulbs" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <label class="search" for="q">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" enterkeyhint="search" placeholder="Filmas, aktorius ar žanras" autocomplete="off" aria-label="Ieškoti filmo">
+      <button class="clear" id="qclear" type="button" aria-label="Išvalyti paiešką" hidden>×</button>
+    </label>
+    <div class="scroller" id="days" role="group" aria-label="Diena"></div>
+    <div class="row2">
+      <select id="from" aria-label="Seansai nuo"></select>
+      <select id="genre" aria-label="Žanras"><option value="">Visi žanrai</option></select>
+      <button class="fbtn" id="fbtn" type="button" aria-expanded="false" aria-controls="filters">Filtrai <span class="n" id="fcount" hidden></span></button>
+    </div>
+    <div class="filters" id="filters" hidden>
+      <div class="scroller" id="cinemaChips" role="group" aria-label="Kino teatrai"></div>
+      <div class="scroller" role="group" aria-label="Papildomi filtrai">
+        <button class="chip" id="fKids" type="button" aria-pressed="false">Vaikams (V, N-7)</button>
+        <button class="chip" id="fImax" type="button" aria-pressed="false">IMAX ir LIUKS</button>
+        <button class="chip" id="fCheap" type="button" aria-pressed="false">5 € ir nemokami</button>
+      </div>
+    </div>
+  </div>
+  <nav class="tabs" aria-label="Skiltys">
+    <div class="in" role="tablist">
+      <button role="tab" data-tab="filmai" aria-selected="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>Filmai</button>
+      <button role="tab" data-tab="teatrai" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-5 9 5v12"/><path d="M9 21v-6h6v6"/></svg>Kino teatrai</button>
+      <button role="tab" data-tab="namuose" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Namuose</button>
+      <button role="tab" data-tab="tau" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Tau</button>
+    </div>
+  </nav>
+</header>
+
+<main class="wrap" id="main"><p class="status">Kraunamas repertuaras…</p></main>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"><div class="sh-in" id="sheetBody"></div></dialog>
+
+<noscript><p class="wrap">Kinai.lt veikia tik įjungus JavaScript.</p></noscript>
+<script src="app.js" defer></script>
+</body>
+</html>

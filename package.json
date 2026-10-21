@@ -1,0 +1,11 @@
+{
+  "name": "kinai-lt",
+  "private": true,
+  "type": "module",
+  "description": "Vilniaus kino teatrų repertuaras vienoje vietoje",
+  "scripts": {
+    "scrape": "node scripts/scrape.mjs",
+    "serve": "npx --yes serve site"
+  },
+  "engines": { "node": ">=20" }
+}
