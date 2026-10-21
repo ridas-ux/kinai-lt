@@ -46,6 +46,7 @@ function dayLabel(iso) {
 }
 
 let NOW = vilniusNow();
+let PAGES = {};
 let FILMS = [], SESS = [], DAYS = [], CATALOG = [], TOP = null, UPDATED = "";
 const state = {
   tab: "filmai", day: "", from: "now", q: "", genre: "",
@@ -60,6 +61,7 @@ async function load() {
     fetch("streaming.json", { cache: "no-cache" }).then((r) => r.json()).catch(() => null),
   ]);
   UPDATED = data.updated;
+  try { PAGES = await (await fetch("films-index.json", { cache: "no-cache" })).json(); } catch { PAGES = {}; }
   FILMS = data.films.map((f, i) => ({ ...f, i, id: norm(f.title), key: norm([f.title, f.orig, (f.genres || []).join(" "), f.director, f.cast].join(" ")) }));
   SESS = data.sessions.map((s) => ({ f: s.f, c: s.c, day: s.t.slice(0, 10), m: +s.t.slice(11, 13) * 60 + +s.t.slice(14, 16), u: s.u, b: (s.g || []).join(" · ") }));
   DAYS = [...new Set(SESS.map((s) => s.day))].filter((d) => d >= NOW.date).sort();
@@ -133,6 +135,11 @@ function wire() {
     if (e.target.id === "sheet" || e.target.closest(".sh-close")) $("#sheet").close();
     const like = e.target.closest("[data-like]"); if (like) toggleLike(like);
   });
+  // Lankomumas: „pirkti bilietą“ paspaudimai pagal kino teatrą (GoatCounter)
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a.t");
+    if (a && window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "bilietas/" + (a.dataset.c || "?"), title: a.dataset.f || "", event: true });
+  });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { NOW = vilniusNow(); render(); } });
 }
 function setTab(t) {
@@ -191,7 +198,7 @@ function filmStream(f) {
 /* ---------- render pieces ---------- */
 function chip(s) {
   const c = CINEMAS[s.c];
-  return `<a class="t" href="${esc(s.u)}" target="_blank" rel="noopener" aria-label="Pirkti bilietą ${hm(s.m)}, ${esc(c.name)}"><b>${hm(s.m)}</b>${s.b ? `<small>${esc(s.b)}</small>` : ""}</a>`;
+  return `<a class="t" data-c="${s.c}" data-f="${esc(FILMS[s.f].title)}" href="${esc(s.u)}" target="_blank" rel="noopener" aria-label="Pirkti bilietą ${hm(s.m)}, ${esc(c.name)}"><b>${hm(s.m)}</b>${s.b ? `<small>${esc(s.b)}</small>` : ""}</a>`;
 }
 function poster(f, big) {
   const h = hue(f.title);
@@ -305,6 +312,7 @@ function openFilm(i) {
     ${f.desc ? `<p class="sh-desc">${esc(f.desc)}</p>` : ""}
     ${f.director || f.cast ? `<div class="sh-credits">${f.director ? `<div><b>Režisierius:</b> ${esc(f.director)}</div>` : ""}${f.cast ? `<div><b>Vaidina:</b> ${esc(f.cast)}</div>` : ""}</div>` : ""}
     ${f.trailer ? `<a class="trailer" href="${esc(f.trailer)}" target="_blank" rel="noopener">▶ Žiūrėti anonsą</a>` : ""}
+    ${PAGES[f.title] ? `<a class="trailer" href="filmai/${esc(PAGES[f.title])}/">Visi filmo seansai ir aprašymas →</a>` : ""}
     <div class="status" style="margin:4px 0 0">${esc(dayLabel(state.day))}</div>
     ${ss.length ? sessionsBlock(ss) : `<p style="margin:0;color:var(--muted);font-size:14px">Šią dieną pagal pasirinktą laiką seansų nėra.${nextDays.length ? ` Kitos dienos: ${nextDays.map((d) => `<button class="chip" type="button" data-goday="${d}" data-film="${i}">${dateObj(d).getDate()} d.</button>`).join(" ")}` : ""}</p>`}
     ${filmStream(f)}`;
