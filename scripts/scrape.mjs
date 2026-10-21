@@ -34,7 +34,7 @@ for (const [name, fn, cinemas] of SOURCES) {
     const r = await fn(DAYS);
     if (!r.sessions.length) throw new Error("negauta nė vieno seanso");
     raw.push(r);
-    report.push(`✔ ${name}: ${r.sessions.length} seansų, ${r.films.size} filmų (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+    report.push(`✔ ${name}: ${r.sessions.length} seansų, ${r.films.size} filmų (${((Date.now() - t0) / 1000).toFixed(1)} s)${r.note ? " – " + r.note : ""}`);
   } catch (e) {
     report.push(`✖ ${name}: ${e.message}`);
     // Jei šaltinis neveikia, paliekame vakarykščius šio kino teatro seansus, kad svetainė neištuštėtų.
