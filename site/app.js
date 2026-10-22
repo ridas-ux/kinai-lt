@@ -129,7 +129,7 @@ function wire() {
   $("#cinemaChips").addEventListener("click", (e) => {
     const b = e.target.closest(".chip"); if (!b) return; const c = b.dataset.c;
     state.cinemas.has(c) ? state.cinemas.delete(c) : state.cinemas.add(c);
-    b.setAttribute("aria-pressed", state.cinemas.has(c)); store.set("cinemas", [...state.cinemas]); render();
+    b.setAttribute("aria-pressed", state.cinemas.has(c)); savePrefs(); render();
   });
   [["#fKids", "kids"], ["#fImax", "prem"], ["#fCheap", "cheap"]].forEach(([id, k]) =>
     $(id).addEventListener("click", (e) => { state[k] = !state[k]; e.currentTarget.setAttribute("aria-pressed", state[k]); render(); }));
@@ -152,6 +152,32 @@ function setTab(t) {
   history.replaceState(null, "", "#" + t);
   render(); window.scrollTo({ top: 0 });
 }
+
+/* ---------- pomėgiai: šiame įrenginyje + paskyroje (auth.js) ---------- */
+function prefs() { return { liked: [...state.liked], favGenres: [...state.favGenres], cinemas: [...state.cinemas] }; }
+function savePrefs() {
+  const p = prefs();
+  store.set("liked", p.liked); store.set("favGenres", p.favGenres); store.set("cinemas", p.cinemas);
+  if (window.kinaiCloud) window.kinaiCloud.save(p);
+}
+// auth.js kviečia prisijungus: sujungiame paskyros ir šio įrenginio pomėgius.
+window.kinai = {
+  prefs,
+  merge(remote) {
+    if (!remote) return prefs();
+    (remote.liked || []).forEach((x) => typeof x === "string" && state.liked.add(x));
+    (remote.favGenres || []).forEach((x) => state.favGenres.add(x));
+    if (!state.cinemas.size) (remote.cinemas || []).forEach((x) => CINEMAS[x] && state.cinemas.add(x));
+    const p = prefs();
+    store.set("liked", p.liked); store.set("favGenres", p.favGenres); store.set("cinemas", p.cinemas);
+    if (FILMS.length) {
+      document.querySelectorAll("#cinemaChips .chip").forEach((b) => b.setAttribute("aria-pressed", state.cinemas.has(b.dataset.c)));
+      render();
+    }
+    return p;
+  },
+  userChanged() { if (FILMS.length) render(); },
+};
 
 /* ---------- filtering ---------- */
 function minFrom(day = state.day) {
@@ -294,18 +320,34 @@ function renderHome() {
 }
 function renderForYou() {
   const fav = state.favGenres, liked = state.liked;
-  const weights = {};
+  const weights = {}, people = {};
   fav.forEach((g) => (weights[g] = (weights[g] || 0) + 2));
-  FILMS.filter((f) => liked.has(f.id)).forEach((f) => (f.genres || []).forEach((g) => (weights[g] = (weights[g] || 0) + 1)));
-  let h = `<section class="sec" style="margin-top:14px"><h3>Mano skonis</h3><p>Pažymėkite mėgstamus žanrus arba spauskite širdelę prie filmų. Pasirinkimai saugomi tik šiame įrenginyje.</p>
-    <div class="tags">${state.allGenres.map((g) => `<button class="chip" type="button" data-g="${esc(g)}" aria-pressed="${fav.has(g)}">${esc(g)}</button>`).join("")}</div></section>`;
+  // Širdelės: kiekvienas patikęs filmas sustiprina savo žanrus, režisierių ir aktorius.
+  const likedFilms = FILMS.filter((f) => liked.has(f.id));
+  likedFilms.forEach((f) => {
+    (f.genres || []).forEach((g) => (weights[g] = (weights[g] || 0) + 1));
+    splitPeople(f.director).forEach((n) => (people[n] = (people[n] || 0) + 3));
+    splitPeople(f.cast).forEach((n) => (people[n] = (people[n] || 0) + 1.5));
+  });
+  const ac = window.kinaiAuth;
+  const who = ac && ac.enabled ? (ac.user
+    ? `Pomėgiai išsaugoti paskyroje <b>${esc(ac.user.name)}</b> – matysite juos ir kituose įrenginiuose.`
+    : `<button class="linkbtn" type="button" data-login>Prisijunkite</button>, kad širdelės ir žanrai išliktų visuose įrenginiuose.`)
+    : "Pasirinkimai saugomi šiame įrenginyje.";
+  let h = `<section class="sec" style="margin-top:14px"><h3>Mano skonis</h3><p>Pažymėkite mėgstamus žanrus arba spauskite širdelę prie patikusių filmų – rekomendacijos prisitaikys. ${who}</p>
+    <div class="tags">${state.allGenres.map((g) => `<button class="chip" type="button" data-g="${esc(g)}" aria-pressed="${fav.has(g)}">${esc(g)}</button>`).join("")}</div>
+    ${likedFilms.length ? `<p style="margin-top:4px"><b style="color:var(--ink)">Jums patiko (${likedFilms.length}):</b></p><div class="tags">${likedFilms.map((f) => `<button class="chip" type="button" data-open="${f.i}">♥ ${esc(f.title)}</button>`).join("")}</div>` : ""}</section>`;
   if (!Object.keys(weights).length) return h + `<div class="empty"><strong>Pasirinkite žanrus</strong>Tada čia pamatysite jums tinkančius filmus su artimiausiais seansais.</div>`;
-  const g = grouped().map((x) => ({ ...x, score: (x.f.genres || []).reduce((a, gg) => a + (weights[gg] || 0), 0) + (liked.has(x.f.id) ? 3 : 0) }))
-    .filter((x) => x.score > 0).sort((a, b) => b.score - a.score || b.ss.length - a.ss.length);
+  const score = (f) => (f.genres || []).reduce((a, gg) => a + (weights[gg] || 0), 0)
+    + [...splitPeople(f.director), ...splitPeople(f.cast)].reduce((a, n) => a + (people[n] || 0), 0);
+  // Jau patikę filmai rodomi atskirai viršuje, rekomendacijose – tik nauji atradimai.
+  const g = grouped().map((x) => ({ ...x, score: score(x.f) }))
+    .filter((x) => x.score > 0 && !liked.has(x.f.id)).sort((a, b) => b.score - a.score || b.all.length - a.all.length);
   h += `<div class="status">Rekomenduojama tau · ${esc(dayLabel(state.day))}</div>`;
   h += g.length ? `<div class="list">${g.slice(0, 12).map((x) => filmCard(x.f, x.ss, x)).join("")}</div>` : `<div class="empty"><strong>Šią dieną nėra</strong>Pabandykite kitą dieną ar laiką.</div>`;
   return h;
 }
+function splitPeople(s) { return String(s || "").split(/\s*,\s*/).map(norm).filter((x) => x.length > 3); }
 function footer() {
   const d = UPDATED ? new Date(UPDATED) : null;
   const when = d ? new Intl.DateTimeFormat("lt-LT", { timeZone: "Europe/Vilnius", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(d) : "";
@@ -372,14 +414,15 @@ function openFilmAll(i) {
 function toggleLike(btn) {
   const id = btn.dataset.like;
   state.liked.has(id) ? state.liked.delete(id) : state.liked.add(id);
-  store.set("liked", [...state.liked]);
+  savePrefs();
   document.querySelectorAll(`[data-like="${CSS.escape(id)}"]`).forEach((b) => b.setAttribute("aria-pressed", state.liked.has(id)));
   if (state.tab === "tau") render();
 }
 function onMainClick(e) {
   const like = e.target.closest("[data-like]"); if (like) return toggleLike(like);
   const g = e.target.closest("[data-g]");
-  if (g) { const v = g.dataset.g; state.favGenres.has(v) ? state.favGenres.delete(v) : state.favGenres.add(v); store.set("favGenres", [...state.favGenres]); return render(); }
+  if (g) { const v = g.dataset.g; state.favGenres.has(v) ? state.favGenres.delete(v) : state.favGenres.add(v); savePrefs(); return render(); }
+  if (e.target.closest("[data-login]")) return window.kinaiAuth && window.kinaiAuth.open();
   const open = e.target.closest("[data-open]"); if (open) return openFilm(+open.dataset.open);
   if (e.target.id === "more") { state.limit += 30; render(); }
 }
