@@ -94,11 +94,12 @@ for (const [k, name, fn] of PLATFORMS) {
 
 /* ---------- plakatai, vertinimai, anonsai ---------- */
 const cache = new Map();
-for (const p of (previous && previous.platforms) || []) for (const l of p.lists || []) for (const it of l.items || []) if (it.imdbId || it.imdb) cache.set(norm(it.o || it.t) + "|" + (it.y || ""), it);
+for (const p of (previous && previous.platforms) || []) for (const l of p.lists || []) for (const it of l.items || []) if (it.imdb || (!OMDB && it.imdbId)) cache.set(norm(it.o || it.t) + "|" + (it.y || ""), it);
 let omdbCalls = 0;
-async function omdb(t, y, kind) {
+async function omdb(t, y, kind, id) {
   if (!OMDB || omdbCalls > 400) return null;
   omdbCalls++;
+  if (id) { const r = await getJSON(`https://www.omdbapi.com/?apikey=${OMDB}&i=${id}`).catch(() => null); return r && r.Response === "True" ? r : null; }
   const type = kind === "Serialas" ? "&type=series" : kind === "Filmas" ? "&type=movie" : "";
   const q = (extra) => getJSON(`https://www.omdbapi.com/?apikey=${OMDB}&t=${encodeURIComponent(t)}${type}${extra}`).catch(() => null);
   let r = await q(y ? `&y=${y}` : "");
@@ -120,7 +121,8 @@ for (const p of platforms) {
       const old = cache.get(norm(title) + "|" + (it.y || ""));
       if (old) { for (const f of ["imdbId", "imdb", "rt", "poster", "y", "plot"]) if (!it[f] && old[f]) it[f] = old[f]; }
       else {
-        const o = await omdb(title, it.y, it.kind);
+        let o = await omdb(title, it.y, it.kind);
+        if (!o && OMDB) { const s = await imdbSuggest(title, it.y); if (s) o = await omdb(title, 0, "", s.id); }
         if (o) {
           it.imdbId = o.imdbID; it.y = it.y || +String(o.Year).slice(0, 4) || 0;
           if (o.imdbRating && o.imdbRating !== "N/A") it.imdb = o.imdbRating;
