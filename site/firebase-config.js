@@ -4,7 +4,7 @@
    Kol apiKey tuščias, prisijungimo mygtukas nerodomas. */
 window.KINAI_FIREBASE = {
   apiKey: "",
-  authDomain: "",
-  projectId: "",
-  appId: "",
+  authDomain: "kinai-lt.firebaseapp.com",
+  projectId: "kinai-lt",
+  appId: "1:662817766122:web:1ad38cd81e8fa1ca62f593",
 };
