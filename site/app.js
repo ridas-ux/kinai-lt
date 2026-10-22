@@ -14,6 +14,9 @@ const STREAM = {
   nf:  { name: "Netflix", cls: "nf", search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
   pv:  { name: "Prime Video", cls: "pv", search: (q) => `https://www.primevideo.com/search/?phrase=${encodeURIComponent(q)}` },
   hbo: { name: "HBO Max", cls: "hbo", search: (q) => `https://play.hbomax.com/search?q=${encodeURIComponent(q)}` },
+  go3: { name: "Go3", cls: "go3", search: () => "https://go3.lt/" },
+  epika: { name: "LRT Epika", cls: "epika", search: () => "https://epika.lrt.lt/" },
+  atv: { name: "Apple TV", cls: "atv", search: (q) => `https://tv.apple.com/lt/search?term=${encodeURIComponent(q)}` },
 };
 
 /* ---------- helpers ---------- */
@@ -73,13 +76,19 @@ async function load() {
   if (stream) {
     TOP = stream;
     const t = stream.top || {};
-    CATALOG = [
+    if (stream.platforms) {
+      // Naujas formatas (scripts/streaming.mjs): platformos → sąrašai → filmai su plakatais ir vertinimais.
+      CATALOG = stream.platforms.flatMap((p) => p.lists.flatMap((l) => l.items.map((x) => ({ ...x, p: p.k, k: x.kind || "" }))))
+        .concat(stream.extra || []).filter((x) => STREAM[x.p]);
+      CATALOG = CATALOG.flatMap((x) => [{ ...x, n: norm(x.t) }, ...(x.o ? [{ ...x, n: norm(x.o) }] : [])]);
+    } else CATALOG = [
       ...(t.nfMovies || []).map((x) => ({ t: x, p: "nf", k: "Filmas" })),
       ...(t.nfShows || []).map((x) => ({ t: x, p: "nf", k: "Serialas" })),
       ...(t.hbo || []).map((x) => ({ t: x, p: "hbo", k: "" })),
       ...(t.pv || []).map((x) => ({ t: x, p: "pv", k: "" })),
       ...(stream.extra || []),
     ].map((x) => ({ ...x, n: norm(x.t) }));
+    if (!stream.platforms) CATALOG = CATALOG.filter((x) => STREAM[x.p]);
   }
   // Liked films are stored by normalized title so they survive daily updates.
   state.liked = new Set([...state.liked].filter((x) => typeof x === "string"));
@@ -230,7 +239,7 @@ function streamMatches(q) {
   const w = norm(q).split(" ").filter((x) => x.length > 1);
   return w.length ? CATALOG.filter((x) => w.every((v) => x.n.includes(v))) : [];
 }
-const streamBtns = (items) => `<div class="sbtns">${items.map((x) => { const p = STREAM[x.p]; return `<a class="sbtn ${p.cls}" href="${esc(x.url || p.search(x.t))}" target="_blank" rel="noopener">${p.name}</a>`; }).join("")}</div>`;
+const streamBtns = (items) => `<div class="sbtns">${items.filter((x, i, a) => a.findIndex((y) => y.p === x.p) === i).map((x) => { const p = STREAM[x.p]; return `<a class="sbtn ${p.cls}" href="${esc(x.url || p.search(x.t))}" target="_blank" rel="noopener">${p.name}</a>`; }).join("")}</div>`;
 function streamBox(q) {
   const m = streamMatches(q); if (!m.length) return "";
   return `<section class="stream" aria-label="Žiūrėti namuose"><h3>Žiūrėti namuose</h3>${m.map((x) => `<div style="display:grid;gap:6px"><div style="font-weight:700">${esc(x.t)}${x.k ? ` <small style="color:var(--muted);font-weight:400">· ${esc(x.k)}</small>` : ""}</div>${streamBtns([x])}</div>`).join("")}</section>`;
@@ -313,7 +322,37 @@ function topList(items, plat) {
   if (!list.length) return `<p>Šiame sąraše pagal paiešką nieko nėra.</p>`;
   return `<ol class="top10">${list.map((t) => `<li style="counter-set:n ${items.indexOf(t)}"><span>${esc(t)}</span><a href="${esc(p.search(t))}" target="_blank" rel="noopener" style="background:var(--${p.cls})">Žiūrėti</a></li>`).join("")}</ol>`;
 }
+function rating(x) {
+  return `${x.imdb ? `<a class="rt imdb" href="https://www.imdb.com/title/${esc(x.imdbId)}/" target="_blank" rel="noopener" aria-label="IMDb ${esc(x.imdb)}"><b>IMDb</b>${esc(x.imdb)}</a>` : ""}${x.rt ? `<span class="rt tom" aria-label="Rotten Tomatoes ${esc(x.rt)}"><b>RT</b>${esc(x.rt)}</span>` : ""}`;
+}
+function homeCard(x, i, p) {
+  const P = STREAM[p.k], title = x.t, h = hue(title);
+  const watch = x.url || P.search(x.o || x.t);
+  return `<li class="hc"><a class="hc-p" href="${esc(watch)}" target="_blank" rel="noopener" style="background:linear-gradient(160deg,hsl(${h} 55% 40%),hsl(${(h + 40) % 360} 60% 18%))" aria-label="${esc(title)} – ${esc(P.name)}">
+      <span aria-hidden="true">${esc((title.replace(/^[^\p{L}\p{N}]+/u, "")[0] || "").toUpperCase())}</span>${x.poster ? `<img src="${esc(x.poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<i>${i + 1}</i></a>
+    <div class="hc-t">${esc(title)}</div><div class="hc-m">${[x.y || "", x.kind || ""].filter(Boolean).join(" · ")}</div>
+    <div class="hc-r">${rating(x)}</div>
+    <div class="hc-b"><a class="hb" href="${esc(watch)}" target="_blank" rel="noopener" style="background:var(--${P.cls})">Žiūrėti</a>${x.trailer ? `<a class="hb ghost" href="${esc(x.trailer)}" target="_blank" rel="noopener">▶ Anonsas</a>` : ""}</div></li>`;
+}
+function renderHomeNew() {
+  const q = norm(state.q);
+  const match = (x) => !q || norm([x.t, x.o].join(" ")).includes(q);
+  let h = `<div class="status">Populiariausi Lietuvoje · atnaujinta ${esc(new Intl.DateTimeFormat("lt-LT", { timeZone: "Europe/Vilnius", month: "long", day: "numeric" }).format(new Date(TOP.updated)))}</div>`;
+  let any = false;
+  for (const p of TOP.platforms) {
+    if (!STREAM[p.k]) continue;
+    const lists = p.lists.map((l) => ({ ...l, items: l.items.filter(match) })).filter((l) => l.items.length);
+    if (!lists.length) continue;
+    any = true;
+    h += `<section class="sec"><h3><span class="plat" style="background:var(--${STREAM[p.k].cls})"></span>${esc(p.name)}</h3>${lists.map((l) =>
+      `${lists.length > 1 || p.lists.length > 1 ? `<p>${esc(l.name)}</p>` : ""}<ol class="hrow">${l.items.map((x, i) => homeCard(x, i, p)).join("")}</ol>`).join("")}</section>`;
+  }
+  if (!any) h += `<div class="empty"><strong>Nieko neradome</strong>Pagal paiešką populiariausiųjų sąrašuose nieko nėra.</div>`;
+  h += `<p class="hint" style="margin-top:14px">IMDb ir Rotten Tomatoes vertinimai – iš OMDb. Anonsai atsidaro YouTube ar platformoje.</p>`;
+  return h;
+}
 function renderHome() {
+  if (TOP && TOP.platforms) return renderHomeNew();
   if (!TOP) return `<div class="empty"><strong>Nepavyko įkelti</strong>Srautinių platformų sąrašas šiuo metu neprieinamas.</div>`;
   const t = TOP.top || {};
   const sec = (title, cls, items, p) => items && items.length ? `<section class="sec"><h3><span class="plat" style="background:var(--${cls})"></span>${title}</h3>${topList(items, p)}</section>` : "";
