@@ -1,4 +1,4 @@
-// Surenka visų Vilniaus kino teatrų repertuarą ir įrašo į site/data.json.
+// Surenka Vilniaus, Kauno ir Klaipėdos kino teatrų repertuarą ir įrašo į site/data.json.
 // Paleidimas: node scripts/scrape.mjs   (DAYS=10 node scripts/scrape.mjs – kiek dienų į priekį)
 import { readFile, writeFile } from "node:fs/promises";
 import { key, vilniusDays } from "./lib.mjs";
@@ -7,6 +7,8 @@ import { forum } from "./sources/forum.mjs";
 import { vue } from "./sources/vue.mjs";
 import { pasaka } from "./sources/pasaka.mjs";
 import { skalvija } from "./sources/skalvija.mjs";
+import { cinamon } from "./sources/cinamon.mjs";
+import { romuva } from "./sources/romuva.mjs";
 
 const OUT = new URL("../site/data.json", import.meta.url);
 const DAYS = vilniusDays(+(process.env.DAYS || 8));
@@ -14,12 +16,14 @@ const DAYS = vilniusDays(+(process.env.DAYS || 8));
 // Šaltinių eiliškumas: kas pirmesnis, to pavadinimas ir aprašymas laimi.
 const SOURCES = [
   ["Apollo", apollo, ["aa", "ao"]],
-  ["Forum Cinemas", forum, ["fv"]],
+  ["Forum Cinemas", forum, ["fv", "fk", "fkl"]],
   ["Pasaka", pasaka, ["ps", "pp"]],
   ["Vue", vue, ["vue"]],
   ["Skalvija", skalvija, ["sk"]],
+  ["Cinamon Mega", cinamon, ["cm"]],
+  ["Romuva", romuva, ["rk"]],
 ];
-const POSTER_PRIORITY = ["forum", "apollo", "pasaka", "vue", "skalvija"];
+const POSTER_PRIORITY = ["forum", "apollo", "cinamon", "pasaka", "vue", "skalvija", "romuva"];
 
 const ALIAS = { "forgotten island": "uzmirstoji sala" };
 
