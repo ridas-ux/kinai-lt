@@ -265,8 +265,20 @@ function streamMatches(q) {
   return w.length ? CATALOG.filter((x) => w.every((v) => x.n.includes(v))) : [];
 }
 const streamBtns = (items) => `<div class="sbtns">${items.filter((x, i, a) => a.findIndex((y) => y.p === x.p) === i).map((x) => { const p = STREAM[x.p]; return `<a class="sbtn ${p.cls}" href="${esc(x.url || p.search(x.t))}" target="_blank" rel="noopener">${p.name}</a>`; }).join("")}</div>`;
+// Jei filmo nėra populiariausiųjų sąrašuose – paieška visose platformose (JustWatch rodo, kur filmas Lietuvoje).
+function searchElsewhere(q) {
+  q = q.trim(); if (q.length < 3) return "";
+  const e = encodeURIComponent(q);
+  const links = [
+    ["JustWatch – kur žiūrėti Lietuvoje", `https://www.justwatch.com/lt/search?q=${e}`, "jw"],
+    ...["nf", "hbo", "pv", "atv"].map((k) => [STREAM[k].name, STREAM[k].search(q), STREAM[k].cls]),
+  ];
+  return `<section class="stream" aria-label="Ieškoti platformose"><h3>Ieškoti namuose</h3><p style="margin:0;color:var(--muted);font-size:13px">„${esc(q)}“ nėra populiariausiųjų sąrašuose. Patikrinkite, kurioje platformoje jį galima žiūrėti:</p>
+    <div class="sbtns">${links.map(([l, u, c]) => `<a class="sbtn ${c}" href="${esc(u)}" target="_blank" rel="noopener">${esc(l)}</a>`).join("")}</div></section>`;
+}
 function streamBox(q) {
-  const m = streamMatches(q); if (!m.length) return "";
+  const m = streamMatches(q).filter((x, i, a) => a.findIndex((y) => y.p === x.p && y.t === x.t) === i);
+  if (!m.length) return searchElsewhere(q);
   return `<section class="stream" aria-label="Žiūrėti namuose"><h3>Žiūrėti namuose</h3>${m.map((x) => `<div style="display:grid;gap:6px"><div style="font-weight:700">${esc(x.t)}${x.k ? ` <small style="color:var(--muted);font-weight:400">· ${esc(x.k)}</small>` : ""}</div>${streamBtns([x])}</div>`).join("")}</section>`;
 }
 function filmStream(f) {
@@ -310,7 +322,7 @@ function renderFilms() {
   const total = g.reduce((a, x) => a + x.all.length, 0);
   let h = `<div class="status">${esc(dayLabel(state.day))} · ${g.length} ${plural(g.length, "filmas", "filmai", "filmų")} · ${total} ${plural(total, "seansas", "seansai", "seansų")}</div>`;
   if (!g.length) {
-    h += `<div class="empty"><strong>Nieko neradome</strong>${state.q ? "Šią dieną šis filmas kine nerodomas. Pabandykite kitą dieną ar laiką." : "Pakeiskite laiką, dieną arba filtrus."}</div>`;
+    h += `<div class="empty"><strong>Nieko neradome</strong>${state.q ? (isAll() ? "Kino teatruose artimiausiomis dienomis šio filmo nėra." : "Šią dieną šis filmas kine nerodomas. Pabandykite kitą dieną ar laiką.") : "Pakeiskite laiką, dieną arba filtrus."}</div>`;
   } else {
     h += `<p class="hint">${TICKET}Paspauskite seanso laiką, kad pirktumėte bilietą</p><div class="list" style="margin-top:8px">${g.slice(0, state.limit).map((x) => filmCard(x.f, x.ss, x)).join("")}</div>`;
     if (g.length > state.limit) h += `<button class="more" type="button" id="more" style="margin-top:12px">Rodyti dar ${g.length - state.limit}</button>`;
@@ -373,7 +385,7 @@ function renderHomeNew() {
     h += `<section class="sec"><h3><span class="plat" style="background:var(--${STREAM[p.k].cls})"></span>${esc(p.name)}</h3>${lists.map((l) =>
       `${lists.length > 1 || p.lists.length > 1 ? `<p>${esc(l.name)}</p>` : ""}<ol class="hrow">${l.items.map((x, i) => homeCard(x, i, p)).join("")}</ol>`).join("")}</section>`;
   }
-  if (!any) h += `<div class="empty"><strong>Nieko neradome</strong>Pagal paiešką populiariausiųjų sąrašuose nieko nėra.</div>`;
+  if (!any) h += `<div class="empty"><strong>Nieko neradome</strong>Pagal paiešką populiariausiųjų sąrašuose nieko nėra.</div>${searchElsewhere(state.q)}`;
   h += `<p class="hint" style="margin-top:14px">IMDb ir Rotten Tomatoes vertinimai – iš OMDb. Anonsai atsidaro YouTube ar platformoje.</p>`;
   return h;
 }
