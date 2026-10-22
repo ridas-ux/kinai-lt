@@ -351,14 +351,14 @@ function topList(items, plat) {
 function rating(x) {
   return `${x.imdb ? `<a class="rt imdb" href="https://www.imdb.com/title/${esc(x.imdbId)}/" target="_blank" rel="noopener" aria-label="IMDb ${esc(x.imdb)}"><b>IMDb</b>${esc(x.imdb)}</a>` : ""}${x.rt ? `<span class="rt tom" aria-label="Rotten Tomatoes ${esc(x.rt)}"><b>RT</b>${esc(x.rt)}</span>` : ""}`;
 }
-function homeCard(x, i, p) {
+function homeCard(x, i, p, showPlat) {
   const P = STREAM[p.k], title = x.t, h = hue(title);
   const watch = x.url || P.search(x.o || x.t);
   return `<li class="hc"><a class="hc-p" href="${esc(watch)}" target="_blank" rel="noopener" style="background:linear-gradient(160deg,hsl(${h} 55% 40%),hsl(${(h + 40) % 360} 60% 18%))" aria-label="${esc(title)} – ${esc(P.name)}">
-      <span aria-hidden="true">${esc((title.replace(/^[^\p{L}\p{N}]+/u, "")[0] || "").toUpperCase())}</span>${x.poster ? `<img src="${esc(x.poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<i>${i + 1}</i></a>
+      <span aria-hidden="true">${esc((title.replace(/^[^\p{L}\p{N}]+/u, "")[0] || "").toUpperCase())}</span>${x.poster ? `<img src="${esc(x.poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}${showPlat ? `<em class="hc-plat" style="background:var(--${P.cls})">${esc(P.name)}</em>` : `<i>${i + 1}</i>`}</a>
     <div class="hc-t">${esc(title)}</div><div class="hc-m">${[x.y || "", x.kind || ""].filter(Boolean).join(" · ")}</div>
     <div class="hc-r">${rating(x)}</div>
-    <div class="hc-b"><a class="hb" href="${esc(watch)}" target="_blank" rel="noopener" style="background:var(--${P.cls})">Žiūrėti</a>${x.trailer ? `<a class="hb ghost" href="${esc(x.trailer)}" target="_blank" rel="noopener">▶ Anonsas</a>` : ""}</div></li>`;
+    <div class="hc-b"><a class="hb" href="${esc(watch)}" target="_blank" rel="noopener" style="background:var(--${P.cls})">Žiūrėti</a>${x.trailer ? `<a class="hb ghost" href="${esc(x.trailer)}" target="_blank" rel="noopener">▶ Anonsas</a>` : `<span class="hb ghost none" aria-hidden="true">▶ Anonsas</span>`}</div></li>`;
 }
 function renderHomeNew() {
   const q = norm(state.q);
@@ -412,6 +412,24 @@ function renderForYou() {
     .filter((x) => x.score > 0 && !liked.has(x.f.id)).sort((a, b) => b.score - a.score || b.all.length - a.all.length);
   h += `<div class="status">Rekomenduojama tau · ${esc(dayLabel(state.day))}</div>`;
   h += g.length ? `<div class="list">${g.slice(0, 12).map((x) => filmCard(x.f, x.ss, x)).join("")}</div>` : `<div class="empty"><strong>Šią dieną nėra</strong>Pabandykite kitą dieną ar laiką.</div>`;
+  // Namuose: Netflix, Go3, LRT Epika, Apple TV ir kt. pasiūlymai pagal tuos pačius žanrus, režisierius ir aktorius.
+  if (TOP && TOP.platforms) {
+    const seen = new Set(), recs = [];
+    for (const p of TOP.platforms) {
+      if (!STREAM[p.k]) continue;
+      for (const l of p.lists) for (const x of l.items) {
+        const k = norm(x.o || x.t);
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        const sc = score(x);
+        if (sc > 0) recs.push({ x, p, sc: sc + (+x.imdb || 0) / 10 });
+      }
+    }
+    recs.sort((a, b) => b.sc - a.sc);
+    h += `<section class="sec"><h3>Žiūrėti namuose – tau</h3>${recs.length
+      ? `<p>Pagal jūsų žanrus ir patikusius filmus iš Netflix, Go3, LRT Epika, Apple TV ir HBO Max populiariausiųjų.</p><ol class="hrow">${recs.slice(0, 15).map((r, i) => homeCard(r.x, i, r.p, true)).join("")}</ol>`
+      : `<p>Šiuo metu populiariausiuose platformų sąrašuose jūsų žanrų nėra.</p>`}</section>`;
+  }
   return h;
 }
 function splitPeople(s) { return String(s || "").split(/\s*,\s*/).map(norm).filter((x) => x.length > 3); }
