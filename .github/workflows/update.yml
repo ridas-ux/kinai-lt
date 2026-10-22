@@ -33,6 +33,12 @@ jobs:
       - name: Sugeneruoti filmų puslapius
         run: node scripts/pages.mjs
 
+      - name: Žiūrėti namuose (Netflix, Go3, LRT Epika, Apple TV + IMDb/RT)
+        run: node scripts/streaming.mjs
+        continue-on-error: true
+        env:
+          OMDB_KEY: ${{ secrets.OMDB_KEY }}
+
       - name: Išsaugoti data.json saugykloje
         run: |
           git config user.name "kinas-bot"
@@ -40,7 +46,7 @@ jobs:
           for i in 1 2 3 4 5; do
             git fetch -q origin main
             git reset -q origin/main
-            git add site/data.json
+            git add site/data.json site/streaming.json
             if git diff --cached --quiet; then echo "Nėra pakeitimų"; break; fi
             git commit -q -m "Repertuaras $(date -u +%F\ %H:%M)"
             if git push -q origin HEAD:main; then echo "Išsaugota"; break; fi
