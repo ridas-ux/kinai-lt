@@ -40,7 +40,10 @@ function vilniusNow() {
   return { date: `${p.year}-${p.month}-${p.day}`, min: (+p.hour % 24) * 60 + +p.minute };
 }
 const dateObj = (iso) => new Date(iso + "T12:00:00");
+const ALL = "all";
+const isAll = () => state.day === ALL;
 function dayLabel(iso) {
+  if (iso === ALL) return "Visi filmai, visos dienos";
   const d = dateObj(iso);
   return `${iso === NOW.date ? "Šiandien, " : ""}${MONTHS[d.getMonth()]} ${d.getDate()} d., ${WDL[d.getDay()]}`;
 }
@@ -81,13 +84,14 @@ async function load() {
   state.liked = new Set([...state.liked].filter((x) => typeof x === "string"));
   const hashTab = (location.hash || "").slice(1);
   if (["filmai", "teatrai", "namuose", "tau"].includes(hashTab)) state.tab = hashTab;
-  state.day = DAYS.includes(NOW.date) ? NOW.date : DAYS[0];
-  state.from = state.day === NOW.date ? "now" : "0";
+  // Pradžioje rodomi visi filmai per visas dienas (įskaitant tuos, kurie pradės rodyti vėliau).
+  state.day = ALL;
+  state.from = "now";
 }
 
 /* ---------- controls ---------- */
 function buildDays() {
-  $("#days").innerHTML = DAYS.map((iso, i) => {
+  $("#days").innerHTML = `<button class="day all" type="button" data-d="${ALL}" aria-pressed="${isAll()}" aria-label="Visos dienos"><small>Visos</small><b>${DAYS.length}<i>d.</i></b></button>` + DAYS.map((iso, i) => {
     const d = dateObj(iso);
     const label = iso === NOW.date ? "Šiand." : i > 0 && DAYS[i - 1] === NOW.date ? "Rytoj" : WD[d.getDay()];
     return `<button class="day" type="button" data-d="${iso}" aria-pressed="${iso === state.day}" aria-label="${esc(dayLabel(iso))}"><small>${label}</small><b>${d.getDate()}</b></button>`;
@@ -95,7 +99,7 @@ function buildDays() {
 }
 function buildFrom() {
   const opts = [];
-  if (state.day === NOW.date) opts.push(["now", "Nuo dabar"]);
+  if (isAll() || state.day === NOW.date) opts.push(["now", "Nuo dabar"]);
   opts.push(["0", "Visą dieną"]);
   for (let h = 10; h <= 22; h++) opts.push([String(h * 60), `Nuo ${String(h).padStart(2, "0")}:00`]);
   opts.push(["e17", "Vakare (po 17:00)"]);
@@ -150,13 +154,14 @@ function setTab(t) {
 }
 
 /* ---------- filtering ---------- */
-function minFrom() {
-  if (state.from === "now") return state.day === NOW.date ? NOW.min - 5 : 0;
+function minFrom(day = state.day) {
+  if (state.from === "now") return day === NOW.date ? NOW.min - 5 : 0;
   if (state.from === "e17") return 17 * 60;
   return +state.from;
 }
 function sessOK(s) {
-  if (s.day !== state.day || s.m < minFrom()) return false;
+  if (isAll() ? s.day < NOW.date : s.day !== state.day) return false;
+  if (s.m < minFrom(s.day)) return false;
   if (state.cinemas.size && !state.cinemas.has(s.c)) return false;
   if (state.prem && !/IMAX|LIUKS|iLUXE/i.test(s.b)) return false;
   if (state.cheap && !/5 €|nemokam/i.test(s.b)) return false;
@@ -176,7 +181,20 @@ function grouped() {
     const f = FILMS[s.f]; if (!filmOK(f)) continue;
     if (!by.has(f.i)) by.set(f.i, []); by.get(f.i).push(s);
   }
-  return [...by.entries()].map(([i, ss]) => ({ f: FILMS[i], ss })).sort((a, b) => b.ss.length - a.ss.length || a.ss[0].m - b.ss[0].m);
+  const out = [...by.entries()].map(([i, ss]) => ({ f: FILMS[i], ss, all: ss }));
+  if (!isAll()) return out.sort((a, b) => b.ss.length - a.ss.length || a.ss[0].m - b.ss[0].m);
+  // Visų dienų režimas: kortelėje – artimiausios dienos seansai; rikiuojama pagal pirmą rodymo dieną, tada pagal populiarumą.
+  for (const x of out) { x.first = x.all[0].day; x.ss = x.all.filter((s) => s.day === x.first); }
+  return out.sort((a, b) => a.first.localeCompare(b.first) || b.all.length - a.all.length || a.ss[0].m - b.ss[0].m);
+}
+const shortDay = (iso) => { const d = dateObj(iso); return iso === NOW.date ? "Šiandien" : `${MONTHS[d.getMonth()]} ${d.getDate()} d.`; };
+function dayNote(x) {
+  // Rodoma tik „visų dienų“ režime: kurios dienos seansai rodomi ir kiek dar dienų filmas rodomas.
+  if (!x.first) return "";
+  const days = [...new Set(x.all.map((s) => s.day))];
+  // „Premjera“ – tik kai kino teatras nurodo vėlesnę premjeros datą (kitaip tai tiesiog artimiausias seansas).
+  const prem = x.first > NOW.date && (x.f.release || "") > NOW.date;
+  return `<div class="dnote">${prem ? `<span class="prem">Premjera ${esc(shortDay(x.first))}</span>` : `<b>${x.first > NOW.date ? "Artimiausias: " : ""}${esc(shortDay(x.first))}</b>`}${days.length > 1 ? `<span>rodomas ${days.length} ${plural(days.length, "dieną", "dienas", "dienų")} · ${x.all.length} ${plural(x.all.length, "seansas", "seansai", "seansų")}</span>` : ""}</div>`;
 }
 
 /* ---------- streaming ---------- */
@@ -213,29 +231,29 @@ function sessionsBlock(ss) {
   return Object.keys(byC).sort((a, b) => byC[a][0].m - byC[b][0].m).map((c) =>
     `<div class="cin"><div class="cname">${esc(CINEMAS[c].name)}<small>${byC[c].length} ${plural(byC[c].length, "seansas", "seansai", "seansų")}</small></div><div class="times">${byC[c].map(chip).join("")}</div></div>`).join("");
 }
-function filmCard(f, ss) {
+function filmCard(f, ss, x) {
   return `<article class="film">
     <div class="fhead">${poster(f)}
       <div class="ftitle"><h2><button type="button" data-open="${f.i}">${esc(f.title)}</button></h2>${f.orig ? `<div class="orig">${esc(f.orig)}</div>` : ""}${meta(f)}
         ${f.desc ? `<p class="desc">${esc(f.desc)}</p>` : ""}</div>
       <button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka">${HEART}</button>
     </div>
-    ${sessionsBlock(ss)}${filmStream(f)}
+    ${x ? dayNote(x) : ""}${sessionsBlock(ss)}${filmStream(f)}
   </article>`;
 }
 
 function renderFilms() {
   const g = grouped();
-  const total = g.reduce((a, x) => a + x.ss.length, 0);
+  const total = g.reduce((a, x) => a + x.all.length, 0);
   let h = `<div class="status">${esc(dayLabel(state.day))} · ${g.length} ${plural(g.length, "filmas", "filmai", "filmų")} · ${total} ${plural(total, "seansas", "seansai", "seansų")}</div>`;
   if (!g.length) {
     h += `<div class="empty"><strong>Nieko neradome</strong>${state.q ? "Šią dieną šis filmas kine nerodomas. Pabandykite kitą dieną ar laiką." : "Pakeiskite laiką, dieną arba filtrus."}</div>`;
   } else {
-    h += `<p class="hint">${TICKET}Paspauskite seanso laiką, kad pirktumėte bilietą</p><div class="list" style="margin-top:8px">${g.slice(0, state.limit).map((x) => filmCard(x.f, x.ss)).join("")}</div>`;
+    h += `<p class="hint">${TICKET}Paspauskite seanso laiką, kad pirktumėte bilietą</p><div class="list" style="margin-top:8px">${g.slice(0, state.limit).map((x) => filmCard(x.f, x.ss, x)).join("")}</div>`;
     if (g.length > state.limit) h += `<button class="more" type="button" id="more" style="margin-top:12px">Rodyti dar ${g.length - state.limit}</button>`;
   }
   if (state.q) { const sb = streamBox(state.q.trim()); if (sb) h += `<div style="height:12px"></div>${sb}`; }
-  h += renderSoon();
+  if (!isAll()) h += renderSoon();
   return h;
 }
 function renderSoon() {
@@ -252,9 +270,11 @@ function renderCinemas() {
   for (const k of keys) {
     const c = CINEMAS[k], by = new Map();
     for (const s of SESS) { if (s.c !== k || !sessOK(s)) continue; const f = FILMS[s.f]; if (!filmOK(f)) continue; if (!by.has(f.i)) by.set(f.i, []); by.get(f.i).push(s); }
-    const items = [...by.entries()].sort((a, b) => a[1][0].m - b[1][0].m);
+    let items = [...by.entries()];
+    if (isAll()) items = items.map(([i, ss]) => [i, ss.filter((s) => s.day === ss[0].day)]).sort((a, b) => a[1][0].day.localeCompare(b[1][0].day) || a[1][0].m - b[1][0].m);
+    else items.sort((a, b) => a[1][0].m - b[1][0].m);
     h += `<section class="cinema-card"><h2>${esc(c.name)}</h2><div class="addr">${esc(c.addr)} · <a href="${esc(c.home)}" target="_blank" rel="noopener">Svetainė</a></div>
-      ${items.length ? items.map(([i, ss]) => { const f = FILMS[i]; return `<div class="crow"><button class="ft" type="button" data-open="${i}">${esc(f.title)}<small>${esc(f.age || "")}${f.dur ? " · " + dur(f.dur) : ""}</small></button><div class="times">${ss.map(chip).join("")}</div></div>`; }).join("")
+      ${items.length ? items.map(([i, ss]) => { const f = FILMS[i]; return `<div class="crow"><button class="ft" type="button" data-open="${i}">${esc(f.title)}<small>${isAll() ? esc(shortDay(ss[0].day)) + " · " : ""}${esc(f.age || "")}${f.dur ? " · " + dur(f.dur) : ""}</small></button><div class="times">${ss.map(chip).join("")}</div></div>`; }).join("")
         : `<div class="crow" style="color:var(--muted);font-size:13px">Pagal pasirinktą laiką seansų nėra.</div>`}</section>`;
   }
   return h + "</div>";
@@ -283,7 +303,7 @@ function renderForYou() {
   const g = grouped().map((x) => ({ ...x, score: (x.f.genres || []).reduce((a, gg) => a + (weights[gg] || 0), 0) + (liked.has(x.f.id) ? 3 : 0) }))
     .filter((x) => x.score > 0).sort((a, b) => b.score - a.score || b.ss.length - a.ss.length);
   h += `<div class="status">Rekomenduojama tau · ${esc(dayLabel(state.day))}</div>`;
-  h += g.length ? `<div class="list">${g.slice(0, 12).map((x) => filmCard(x.f, x.ss)).join("")}</div>` : `<div class="empty"><strong>Šią dieną nėra</strong>Pabandykite kitą dieną ar laiką.</div>`;
+  h += g.length ? `<div class="list">${g.slice(0, 12).map((x) => filmCard(x.f, x.ss, x)).join("")}</div>` : `<div class="empty"><strong>Šią dieną nėra</strong>Pabandykite kitą dieną ar laiką.</div>`;
   return h;
 }
 function footer() {
@@ -301,6 +321,7 @@ function render() {
 /* ---------- film detail sheet ---------- */
 function openFilm(i) {
   const f = FILMS[i];
+  if (isAll()) return openFilmAll(i);
   const ss = SESS.filter((s) => s.f === i && s.day === state.day && s.m >= minFrom());
   const nextDays = [...new Set(SESS.filter((s) => s.f === i && s.day > state.day).map((s) => s.day))].slice(0, 4);
   $("#sheetBody").innerHTML = `
@@ -309,10 +330,7 @@ function openFilm(i) {
       <div style="min-width:0"><h2 id="sheetTitle">${esc(f.title)}</h2>${f.orig ? `<div class="orig">${esc(f.orig)}${f.year ? `, ${f.year}` : ""}</div>` : ""}${meta(f)}
         <button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka" style="margin-top:10px">${HEART}</button></div>
     </div>
-    ${f.desc ? `<p class="sh-desc">${esc(f.desc)}</p>` : ""}
-    ${f.director || f.cast ? `<div class="sh-credits">${f.director ? `<div><b>Režisierius:</b> ${esc(f.director)}</div>` : ""}${f.cast ? `<div><b>Vaidina:</b> ${esc(f.cast)}</div>` : ""}</div>` : ""}
-    ${f.trailer ? `<a class="trailer" href="${esc(f.trailer)}" target="_blank" rel="noopener">▶ Žiūrėti anonsą</a>` : ""}
-    ${PAGES[f.title] ? `<a class="trailer" href="filmai/${esc(PAGES[f.title])}/">Visi filmo seansai ir aprašymas →</a>` : ""}
+    ${sheetInfo(f)}
     <div class="status" style="margin:4px 0 0">${esc(dayLabel(state.day))}</div>
     ${ss.length ? sessionsBlock(ss) : `<p style="margin:0;color:var(--muted);font-size:14px">Šią dieną pagal pasirinktą laiką seansų nėra.${nextDays.length ? ` Kitos dienos: ${nextDays.map((d) => `<button class="chip" type="button" data-goday="${d}" data-film="${i}">${dateObj(d).getDate()} d.</button>`).join(" ")}` : ""}</p>`}
     ${filmStream(f)}`;
@@ -321,6 +339,32 @@ function openFilm(i) {
     $("#days").querySelectorAll(".day").forEach((x) => x.setAttribute("aria-pressed", x.dataset.d === state.day));
     buildFrom(); render(); openFilm(+b.dataset.film);
   }));
+  const dlg = $("#sheet");
+  if (!dlg.open) dlg.showModal();
+  dlg.scrollTop = 0;
+}
+function sheetTop(f) {
+  return `<button class="sh-close" type="button" aria-label="Uždaryti">×</button>
+    <div class="sh-top">${poster(f, true)}
+      <div style="min-width:0"><h2 id="sheetTitle">${esc(f.title)}</h2>${f.orig ? `<div class="orig">${esc(f.orig)}${f.year ? `, ${f.year}` : ""}</div>` : ""}${meta(f)}
+        <button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka" style="margin-top:10px">${HEART}</button></div>
+    </div>`;
+}
+function sheetInfo(f) {
+  return `${f.desc ? `<p class="sh-desc">${esc(f.desc)}</p>` : ""}
+    ${f.director || f.cast ? `<div class="sh-credits">${f.director ? `<div><b>Režisierius:</b> ${esc(f.director)}</div>` : ""}${f.cast ? `<div><b>Vaidina:</b> ${esc(f.cast)}</div>` : ""}</div>` : ""}
+    ${f.trailer ? `<a class="trailer" href="${esc(f.trailer)}" target="_blank" rel="noopener">▶ Žiūrėti anonsą</a>` : ""}
+    ${PAGES[f.title] ? `<a class="trailer" href="filmai/${esc(PAGES[f.title])}/">Visi filmo seansai ir aprašymas →</a>` : ""}`;
+}
+function openFilmAll(i) {
+  // Visų dienų režimas: filmo lange – visi būsimi seansai, sugrupuoti pagal dieną.
+  const f = FILMS[i];
+  const ss = SESS.filter((s) => s.f === i && sessOK(s));
+  const byDay = new Map();
+  ss.forEach((s) => (byDay.get(s.day) || byDay.set(s.day, []).get(s.day)).push(s));
+  $("#sheetBody").innerHTML = sheetTop(f) + sheetInfo(f) +
+    (byDay.size ? [...byDay.entries()].map(([d, x]) => `<div class="status" style="margin:10px 0 0">${esc(dayLabel(d))}</div>${sessionsBlock(x)}`).join("")
+      : `<p style="margin:0;color:var(--muted);font-size:14px">Pagal pasirinktus filtrus seansų nėra.</p>`) + filmStream(f);
   const dlg = $("#sheet");
   if (!dlg.open) dlg.showModal();
   dlg.scrollTop = 0;
