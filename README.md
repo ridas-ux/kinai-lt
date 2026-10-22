@@ -1,6 +1,12 @@
 # Kinai.lt
 
-Visų Vilniaus kino teatrų repertuaras vienoje vietoje: Forum Cinemas Vingis, Apollo Akropolis ir Vilnius Outlet, Vue Ozas, Senamiesčio ir Paupio „Pasaka“, „Skalvija“.
+Vilniaus, Kauno ir Klaipėdos kino teatrų repertuaras vienoje vietoje.
+
+- **Vilnius:** Forum Cinemas Vingis, Apollo Akropolis ir Vilnius Outlet, Vue Ozas, Senamiesčio ir Paupio „Pasaka“, „Skalvija“.
+- **Kaunas:** Forum Cinemas Kaunas, Cinamon Mega, kino centras „Romuva“.
+- **Klaipėda:** Forum Cinemas Klaipėda.
+
+Viršuje galima pasirinkti miestą; be pasirinkimo rodomi visų miestų seansai.
 
 Kasdien du kartus (apie 06:00 ir 15:00 Vilniaus laiku) GitHub automatiškai surenka 8 dienų seansus su pavadinimais, aprašymais, plakatais, anonsais ir bilietų nuorodomis, o tada atnaujina svetainę. Serverio nuomotis nereikia, viskas nemokama.
 
@@ -85,10 +91,12 @@ IMDb ir Rotten Tomatoes vertinimai bei plakatai imami iš **OMDb**. Raktas laiko
 | Kino teatras | Šaltinis | Ką gauname |
 |---|---|---|
 | Apollo | `apollokinas.lt/xml/Schedule`, `/xml/Events` | seansai, aprašymai, plakatai, anonsai, režisieriai, aktoriai |
-| Forum Cinemas | `restapi.forumcinemas.lt/api` | seansai, aprašymai, plakatai, anonsai |
+| Forum Cinemas (Vilnius, Kaunas, Klaipėda) | `restapi.forumcinemas.lt/api` | seansai, aprašymai, plakatai, anonsai |
 | Vue | `vuekinas.lt/data/filmswithshowings/1001` | seansai, trumpi aprašymai, plakatai |
 | Pasaka | `api.pasaka.lt/movies` | seansai, aprašymai, plakatai, anonsai |
 | Skalvija | `skalvija.lt/wp-json/data/v1/get_shows/` | seansai, aprašymai, plakatai, bilietų nuorodos |
+| Cinamon Mega (Kaunas) | `cinamonkino.com/api/schedule` | seansai, aprašymai, plakatai, anonsai, bilietų nuorodos |
+| Romuva (Kaunas) | `kcromuva.lt/repertuaras/` (HTML) | seansai, aprašymai, plakatai, režisieriai |
 
 - Tas pats filmas iš skirtingų kino teatrų sujungiamas pagal pavadinimą. „5 eurų savaitė:“, „(dubliuotas)“, „Lenkų kino festivalis“ ir pan. nuimami nuo pavadinimo ir rodomi kaip žymos prie seanso.
 - Plakatas imamas pirmiausia iš Forum (didžiausia raiška), toliau iš Apollo, Pasakos, Vue ir Skalvijos. Aprašymas imamas ilgiausias.
