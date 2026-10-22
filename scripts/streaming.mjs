@@ -14,6 +14,12 @@ const MANUAL = new URL("./streaming-manual.json", import.meta.url);
 const OMDB = process.env.OMDB_KEY || "";
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const yt = (t, y) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${t} ${y || ""} trailer`.replace(/\s+/g, " ").trim())}`;
+const GENRE_LT = {
+  Action: "Veiksmo", Adventure: "Nuotykių", Animation: "Animacija", Biography: "Biografinis", Comedy: "Komedija", Crime: "Kriminalinis",
+  Documentary: "Dokumentinis", Drama: "Drama", Family: "Šeimai", Fantasy: "Fantastinis", History: "Istorinis", Horror: "Siaubo",
+  Music: "Muzikinis", Musical: "Muzikinis", Mystery: "Mistinis", Romance: "Romantinis", "Sci-Fi": "Mokslinė fantastika",
+  Sport: "Sporto", Thriller: "Trileris", War: "Karo",
+};
 const httpsImg = (u) => (u ? (u.startsWith("//") ? "https:" + u : u).replace(/\?.*$/, "") : "");
 
 let previous = null;
@@ -94,7 +100,7 @@ for (const [k, name, fn] of PLATFORMS) {
 
 /* ---------- plakatai, vertinimai, anonsai ---------- */
 const cache = new Map();
-for (const p of (previous && previous.platforms) || []) for (const l of p.lists || []) for (const it of l.items || []) if (it.imdb || (!OMDB && it.imdbId)) cache.set(norm(it.o || it.t) + "|" + (it.y0 ?? ""), it);
+for (const p of (previous && previous.platforms) || []) for (const l of p.lists || []) for (const it of l.items || []) if ((it.imdb && it.genres) || (!OMDB && it.imdbId)) cache.set(norm(it.o || it.t) + "|" + (it.y0 ?? ""), it);
 let omdbCalls = 0;
 async function omdb(t, y, kind, id) {
   if (!OMDB || omdbCalls > 400) return null;
@@ -130,7 +136,7 @@ for (const p of platforms) {
       const title = it.o || it.t;
       it.y0 = it.y || 0; // šaltinio metai (Netflix jų neturi) – pagal juos ir talpykla
       const old = cache.get(norm(title) + "|" + it.y0);
-      if (old) { for (const f of ["imdbId", "imdb", "rt", "poster", "y", "plot"]) if (!it[f] && old[f]) it[f] = old[f]; }
+      if (old) { for (const f of ["imdbId", "imdb", "rt", "poster", "y", "plot", "genres", "director", "cast"]) if (!it[f] && old[f]) it[f] = old[f]; }
       else {
         let o = await omdb(title, it.y, it.kind);
         if (!o && OMDB) { const s = await imdbSuggest(title, it.y); if (s) o = await omdb(title, 0, "", s.id); }
@@ -140,6 +146,11 @@ for (const p of platforms) {
           const rt = (o.Ratings || []).find((x) => x.Source === "Rotten Tomatoes"); if (rt) it.rt = rt.Value;
           if (!it.poster && o.Poster && o.Poster !== "N/A") it.poster = o.Poster;
           if (!it.desc && o.Plot && o.Plot !== "N/A") it.plot = o.Plot.slice(0, 300);
+          // Žanrai, režisierius ir aktoriai – rekomendacijoms skiltyje „Tau“.
+          const g = String(o.Genre || "").split(/\s*,\s*/).map((x) => GENRE_LT[x]).filter(Boolean);
+          if (g.length) it.genres = [...new Set(g)];
+          if (o.Director && o.Director !== "N/A") it.director = o.Director;
+          if (o.Actors && o.Actors !== "N/A") it.cast = o.Actors;
         } else if (!it.poster || !it.imdbId) {
           const s = await imdbSuggest(title, it.y);
           if (s) { it.imdbId = it.imdbId || s.id; it.y = it.y || s.y || 0; if (!it.poster && s.i) it.poster = s.i.imageUrl.replace(/\._V1_.*\.jpg$/, "._V1_QL75_UX400_.jpg"); }
