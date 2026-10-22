@@ -22,8 +22,8 @@ const STREAM = {
   nf:  { name: "Netflix", cls: "nf", search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
   pv:  { name: "Prime Video", cls: "pv", search: (q) => `https://www.primevideo.com/search/?phrase=${encodeURIComponent(q)}` },
   hbo: { name: "HBO Max", cls: "hbo", search: (q) => `https://play.hbomax.com/search?q=${encodeURIComponent(q)}` },
-  go3: { name: "Go3", cls: "go3", search: () => "https://go3.lt/" },
-  epika: { name: "LRT Epika", cls: "epika", search: () => "https://epika.lrt.lt/" },
+  go3: { name: "Go3", cls: "go3", search: (q) => `https://go3.lt/search?query=${encodeURIComponent(q)}` },
+  epika: { name: "LRT Epika", cls: "epika", search: (q) => `https://epika.lrt.lt/search?query=${encodeURIComponent(q)}` },
   atv: { name: "Apple TV", cls: "atv", search: (q) => `https://tv.apple.com/lt/search?term=${encodeURIComponent(q)}` },
 };
 
@@ -270,8 +270,8 @@ function searchElsewhere(q) {
   q = q.trim(); if (q.length < 3) return "";
   const e = encodeURIComponent(q);
   const links = [
-    ["JustWatch – kur žiūrėti Lietuvoje", `https://www.justwatch.com/lt/search?q=${e}`, "jw"],
-    ...["nf", "hbo", "pv", "atv"].map((k) => [STREAM[k].name, STREAM[k].search(q), STREAM[k].cls]),
+    ["Ieškoti, kur rodo →", `https://www.justwatch.com/lt/search?q=${e}`, "jw"],
+    ...["nf", "hbo", "pv", "atv", "go3", "epika"].map((k) => [STREAM[k].name, STREAM[k].search(q), STREAM[k].cls]),
   ];
   return `<section class="stream" aria-label="Ieškoti platformose"><h3>Ieškoti namuose</h3><p style="margin:0;color:var(--muted);font-size:13px">„${esc(q)}“ nėra populiariausiųjų sąrašuose. Patikrinkite, kurioje platformoje jį galima žiūrėti:</p>
     <div class="sbtns">${links.map(([l, u, c]) => `<a class="sbtn ${c}" href="${esc(u)}" target="_blank" rel="noopener">${esc(l)}</a>`).join("")}</div></section>`;
