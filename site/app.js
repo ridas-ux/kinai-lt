@@ -2,14 +2,22 @@
 /* Kinai.lt – skaito data.json (atnaujinama kasdien) ir streaming.json. */
 
 const CINEMAS = {
-  fv:  { name: "Forum Cinemas Vingis", short: "Forum Vingis", addr: "Savanorių pr. 7", home: "https://forumcinemas.lt/lt/kinas/forum-cinemas-vingis/" },
-  aa:  { name: "Apollo Akropolis", short: "Apollo Akropolis", addr: "PPC Akropolis, Ozo g. 25", home: "https://www.apollokinas.lt/cinemas/akropolis" },
-  ao:  { name: "Apollo Vilnius Outlet", short: "Apollo Outlet", addr: "PC Vilnius Outlet", home: "https://www.apollokinas.lt/cinemas/vilniusoutlet" },
-  vue: { name: "Vue Vilnius", short: "Vue Ozas", addr: "PPC Ozas, Ozo g. 18", home: "https://vuekinas.lt/kino-teatras/vilnius/repertuaras" },
-  ps:  { name: "Senamiesčio „Pasaka“", short: "Pasaka Senamiestis", addr: "Šv. Ignoto g. 4/3", home: "https://www.pasaka.lt/" },
-  pp:  { name: "Paupio „Pasaka“", short: "Pasaka Paupys", addr: "Paupio g. 26", home: "https://www.pasaka.lt/" },
-  sk:  { name: "Skalvija", short: "Skalvija", addr: "A. Goštauto g. 2", home: "https://skalvija.lt/repertuaras/" },
+  fv:  { city: "Vilnius", name: "Forum Cinemas Vingis", short: "Forum Vingis", addr: "Savanorių pr. 7", home: "https://forumcinemas.lt/lt/kinas/forum-cinemas-vingis/" },
+  aa:  { city: "Vilnius", name: "Apollo Akropolis", short: "Apollo Akropolis", addr: "PPC Akropolis, Ozo g. 25", home: "https://www.apollokinas.lt/cinemas/akropolis" },
+  ao:  { city: "Vilnius", name: "Apollo Vilnius Outlet", short: "Apollo Outlet", addr: "PC Vilnius Outlet", home: "https://www.apollokinas.lt/cinemas/vilniusoutlet" },
+  vue: { city: "Vilnius", name: "Vue Vilnius", short: "Vue Ozas", addr: "PPC Ozas, Ozo g. 18", home: "https://vuekinas.lt/kino-teatras/vilnius/repertuaras" },
+  ps:  { city: "Vilnius", name: "Senamiesčio „Pasaka“", short: "Pasaka Senamiestis", addr: "Šv. Ignoto g. 4/3", home: "https://www.pasaka.lt/" },
+  pp:  { city: "Vilnius", name: "Paupio „Pasaka“", short: "Pasaka Paupys", addr: "Paupio g. 26", home: "https://www.pasaka.lt/" },
+  sk:  { city: "Vilnius", name: "Skalvija", short: "Skalvija", addr: "A. Goštauto g. 2", home: "https://skalvija.lt/repertuaras/" },
 };
+Object.assign(CINEMAS, {
+  fk:  { city: "Kaunas", name: "Forum Cinemas Kaunas", short: "Forum Kaunas", addr: "PC Akropolis, Karaliaus Mindaugo pr. 49", home: "https://forumcinemas.lt/lt/kinas/forum-cinemas-kaunas/" },
+  cm:  { city: "Kaunas", name: "Cinamon Mega", short: "Cinamon Mega", addr: "PC Mega, Islandijos pl. 32", home: "https://cinamonkino.com/mega/repertuaras/lt" },
+  rk:  { city: "Kaunas", name: "Kino centras „Romuva“", short: "Romuva", addr: "Laisvės al. 54", home: "https://kcromuva.lt/repertuaras/" },
+  fkl: { city: "Klaipėda", name: "Forum Cinemas Klaipėda", short: "Forum Klaipėda", addr: "PC Akropolis, Taikos pr. 61", home: "https://forumcinemas.lt/lt/kinas/forum-cinemas-klaipeda/" },
+});
+const CITIES = ["Vilnius", "Kaunas", "Klaipėda"];
+const CITY_LOC = { Vilnius: "Vilniuje", Kaunas: "Kaune", Klaipėda: "Klaipėdoje" };
 const STREAM = {
   nf:  { name: "Netflix", cls: "nf", search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
   pv:  { name: "Prime Video", cls: "pv", search: (q) => `https://www.primevideo.com/search/?phrase=${encodeURIComponent(q)}` },
@@ -57,7 +65,7 @@ let PAGES = {};
 let FILMS = [], SESS = [], DAYS = [], CATALOG = [], TOP = null, UPDATED = "";
 const state = {
   tab: "filmai", day: "", from: "now", q: "", genre: "",
-  cinemas: new Set(store.get("cinemas", [])), kids: false, prem: false, cheap: false, limit: 30,
+  city: store.get("city", ""), cinemas: new Set(store.get("cinemas", [])), kids: false, prem: false, cheap: false, limit: 30,
   liked: new Set(store.get("liked", [])), favGenres: new Set(store.get("favGenres", [])),
 };
 
@@ -119,8 +127,16 @@ function buildFrom() {
 function buildStatic() {
   const genres = [...new Set(FILMS.flatMap((f) => f.genres || []))].sort((a, b) => a.localeCompare(b, "lt"));
   $("#genre").insertAdjacentHTML("beforeend", genres.map((g) => `<option>${esc(g)}</option>`).join(""));
-  $("#cinemaChips").innerHTML = Object.entries(CINEMAS).map(([k, c]) => `<button class="chip" type="button" data-c="${k}" aria-pressed="${state.cinemas.has(k)}">${esc(c.short)}</button>`).join("");
+  if (!CITIES.includes(state.city)) state.city = "";
+  buildCities();
   state.allGenres = genres;
+}
+// Miesto pasirinkimas viršuje: be pasirinkimo – visų miestų kino teatrai.
+function buildCities() {
+  $("#cities").innerHTML = [["", "Visi miestai"], ...CITIES.map((c) => [c, c])].map(([v, l]) =>
+    `<button class="chip city" type="button" data-city="${v}" aria-pressed="${state.city === v}">${esc(l)}</button>`).join("");
+  $("#cinemaChips").innerHTML = Object.entries(CINEMAS).filter(([, c]) => !state.city || c.city === state.city)
+    .map(([k, c]) => `<button class="chip" type="button" data-c="${k}" aria-pressed="${state.cinemas.has(k)}">${esc(c.short)}${state.city ? "" : ` <small>${esc(c.city)}</small>`}</button>`).join("");
 }
 function wire() {
   $("#days").addEventListener("click", (e) => {
@@ -135,6 +151,13 @@ function wire() {
   $("#qclear").addEventListener("click", () => { state.q = ""; $("#q").value = ""; $("#qclear").hidden = true; render(); $("#q").focus(); });
   $("#fbtn").addEventListener("click", () => {
     const open = $("#filters").hidden; $("#filters").hidden = !open; $("#fbtn").setAttribute("aria-expanded", open);
+  });
+  $("#cities").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-city]"); if (!b) return;
+    state.city = b.dataset.city; state.limit = 30; store.set("city", state.city);
+    // Kitų miestų kino teatrų filtrai nebegalioja.
+    for (const c of [...state.cinemas]) if (state.city && CINEMAS[c].city !== state.city) state.cinemas.delete(c);
+    buildCities(); savePrefs(); render();
   });
   $("#cinemaChips").addEventListener("click", (e) => {
     const b = e.target.closest(".chip"); if (!b) return; const c = b.dataset.c;
@@ -165,7 +188,7 @@ function setTab(t) {
 }
 
 /* ---------- pomėgiai: šiame įrenginyje + paskyroje (auth.js) ---------- */
-function prefs() { return { liked: [...state.liked], favGenres: [...state.favGenres], cinemas: [...state.cinemas] }; }
+function prefs() { return { liked: [...state.liked], favGenres: [...state.favGenres], cinemas: [...state.cinemas], city: state.city }; }
 function savePrefs() {
   const p = prefs();
   store.set("liked", p.liked); store.set("favGenres", p.favGenres); store.set("cinemas", p.cinemas);
@@ -179,6 +202,7 @@ window.kinai = {
     (remote.liked || []).forEach((x) => typeof x === "string" && state.liked.add(x));
     (remote.favGenres || []).forEach((x) => state.favGenres.add(x));
     if (!state.cinemas.size) (remote.cinemas || []).forEach((x) => CINEMAS[x] && state.cinemas.add(x));
+    if (!state.city && CITIES.includes(remote.city)) { state.city = remote.city; store.set("city", state.city); if (FILMS.length) buildCities(); }
     const p = prefs();
     store.set("liked", p.liked); store.set("favGenres", p.favGenres); store.set("cinemas", p.cinemas);
     if (FILMS.length) {
@@ -199,6 +223,7 @@ function minFrom(day = state.day) {
 function sessOK(s) {
   if (isAll() ? s.day < NOW.date : s.day !== state.day) return false;
   if (s.m < minFrom(s.day)) return false;
+  if (state.city && CINEMAS[s.c].city !== state.city) return false;
   if (state.cinemas.size && !state.cinemas.has(s.c)) return false;
   if (state.prem && !/IMAX|LIUKS|iLUXE/i.test(s.b)) return false;
   if (state.cheap && !/5 €|nemokam/i.test(s.b)) return false;
@@ -265,8 +290,9 @@ const meta = (f) => `<div class="meta">${f.age ? `<span class="age">${esc(f.age)
 function sessionsBlock(ss) {
   const byC = {};
   ss.forEach((s) => (byC[s.c] = byC[s.c] || []).push(s));
-  return Object.keys(byC).sort((a, b) => byC[a][0].m - byC[b][0].m).map((c) =>
-    `<div class="cin"><div class="cname">${esc(CINEMAS[c].name)}<small>${byC[c].length} ${plural(byC[c].length, "seansas", "seansai", "seansų")}</small></div><div class="times">${byC[c].map(chip).join("")}</div></div>`).join("");
+  const co = (c) => CITIES.indexOf(CINEMAS[c].city);
+  return Object.keys(byC).sort((a, b) => co(a) - co(b) || byC[a][0].m - byC[b][0].m).map((c) =>
+    `<div class="cin"><div class="cname"><span>${esc(CINEMAS[c].name)}${!state.city && !CINEMAS[c].name.includes(CINEMAS[c].city) ? ` <em class="cc">${esc(CINEMAS[c].city)}</em>` : ""}</span><small>${byC[c].length} ${plural(byC[c].length, "seansas", "seansai", "seansų")}</small></div><div class="times">${byC[c].map(chip).join("")}</div></div>`).join("");
 }
 function filmCard(f, ss, x) {
   return `<article class="film">
@@ -302,7 +328,7 @@ function renderSoon() {
   return `<section class="sec"><h3>Netrukus kine</h3><ul class="soon">${soon.map(([i, d]) => { const dt = dateObj(d); return `<li><b>${MONTHS[dt.getMonth()].slice(0, 3)} ${dt.getDate()}</b><button class="ft" type="button" data-open="${i}" style="border:0;background:none;padding:0;text-align:left;cursor:pointer">${esc(FILMS[i].title)}</button></li>`; }).join("")}</ul></section>`;
 }
 function renderCinemas() {
-  const keys = Object.keys(CINEMAS).filter((k) => !state.cinemas.size || state.cinemas.has(k));
+  const keys = Object.keys(CINEMAS).filter((k) => (!state.city || CINEMAS[k].city === state.city) && (!state.cinemas.size || state.cinemas.has(k)));
   let h = `<div class="status">${esc(dayLabel(state.day))}</div><div class="list">`;
   for (const k of keys) {
     const c = CINEMAS[k], by = new Map();
@@ -392,7 +418,7 @@ function splitPeople(s) { return String(s || "").split(/\s*,\s*/).map(norm).filt
 function footer() {
   const d = UPDATED ? new Date(UPDATED) : null;
   const when = d ? new Intl.DateTimeFormat("lt-LT", { timeZone: "Europe/Vilnius", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(d) : "";
-  return `<footer><p class="updated">Atnaujinta: ${esc(when)}</p><p>Seansai, aprašymai ir plakatai iš Forum Cinemas, Apollo Kinas, Vue, „Pasakos“ ir „Skalvijos“ svetainių. Bilietus parduoda patys kino teatrai: paspaudus laiką atsidaro jų pardavimo puslapis.</p><p>„Žiūrėti namuose“ rodoma tik tada, kai filmas patvirtintai yra platformoje.</p></footer>`;
+  return `<footer><p class="updated">Atnaujinta: ${esc(when)}</p><p>Seansai, aprašymai ir plakatai iš Forum Cinemas, Apollo Kinas, Vue, Cinamon, „Pasakos“, „Skalvijos“ ir „Romuvos“ svetainių. Bilietus parduoda patys kino teatrai: paspaudus laiką atsidaro jų pardavimo puslapis.</p><p>„Žiūrėti namuose“ rodoma tik tada, kai filmas patvirtintai yra platformoje.</p></footer>`;
 }
 function render() {
   const n = state.cinemas.size + state.kids + state.prem + state.cheap;
@@ -456,7 +482,7 @@ function openFilmAll(i) {
 const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 function filmUrl(f) { return PAGES[f.title] ? `https://kinai.lt/filmai/${PAGES[f.title]}/` : `https://kinai.lt/?f=${encodeURIComponent(f.id)}`; }
 function openShare(i) {
-  const f = FILMS[i], url = filmUrl(f), text = `${f.title} – seansai Vilniaus kino teatruose`;
+  const f = FILMS[i], url = filmUrl(f), text = `${f.title} – seansai kino teatruose`;
   const u = encodeURIComponent(url), tu = encodeURIComponent(`${text} ${url}`);
   const items = [
     ["copy", "Kopijuoti nuorodą", "", "#6b6472"],
