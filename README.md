@@ -66,6 +66,20 @@ Vėliau galima pridėti Apple (reikia Apple Developer paskyros), Facebook ir tel
 
 Duomenys Firestore: `users/{uid}` → `liked` (patikę filmai, normalizuotais pavadinimais), `favGenres`, `cinemas`, `name`, `updated`. Lankytojas mato ir keičia tik savo įrašą. Paskyrą ištrinti: *Authentication → Users* ir *Firestore → users*.
 
+## Žiūrėti namuose
+
+`scripts/streaming.mjs` kartu su repertuaru atnaujina `site/streaming.json`:
+
+| Platforma | Šaltinis |
+|---|---|
+| Netflix | oficialus Lietuvos savaitės TOP 10 (netflix.com/tudum/top10) |
+| Go3 | go3.lt „TOP 20 žiūrimiausių filmų nuomoje“ ir „Naujai pridėti“ |
+| LRT Epika | epika.lrt.lt „Epikos web topas“ ir „Naujienos“ |
+| Apple TV | oficialus Apple populiariausių filmų sąrašas Lietuvoje |
+| HBO Max, Prime Video | rankiniu būdu: `scripts/streaming-manual.json` (viešo Lietuvos TOP nėra) |
+
+IMDb ir Rotten Tomatoes vertinimai bei plakatai imami iš **OMDb**. Raktas laikomas GitHub paslaptyje: *Settings → Secrets and variables → Actions → New repository secret*, vardas `OMDB_KEY`. Be rakto sąrašai veikia, tik be vertinimų.
+
 ## Kaip veikia duomenų rinkimas
 
 | Kino teatras | Šaltinis | Ką gauname |
