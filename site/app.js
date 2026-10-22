@@ -30,6 +30,7 @@ const MONTHS = ["sausio", "vasario", "kovo", "balandžio", "gegužės", "biržel
 const KIDS = new Set(["V", "N-7"]);
 const TICKET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3z"/></svg>';
 const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+const SHARE = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>';
 const store = {
   get(k, d) { try { const v = localStorage.getItem("kinas." + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("kinas." + k, JSON.stringify(v)); } catch {} },
@@ -138,6 +139,7 @@ function wire() {
   $("#sheet").addEventListener("click", (e) => {
     if (e.target.id === "sheet" || e.target.closest(".sh-close")) $("#sheet").close();
     const like = e.target.closest("[data-like]"); if (like) toggleLike(like);
+    const sh = e.target.closest("[data-share]"); if (sh) openShare(+sh.dataset.share);
   });
   // Lankomumas: „pirkti bilietą“ paspaudimai pagal kino teatrą (GoatCounter)
   document.addEventListener("click", (e) => {
@@ -262,7 +264,7 @@ function filmCard(f, ss, x) {
     <div class="fhead">${poster(f)}
       <div class="ftitle"><h2><button type="button" data-open="${f.i}">${esc(f.title)}</button></h2>${f.orig ? `<div class="orig">${esc(f.orig)}</div>` : ""}${meta(f)}
         ${f.desc ? `<p class="desc">${esc(f.desc)}</p>` : ""}</div>
-      <button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka">${HEART}</button>
+      <div class="acts"><button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka">${HEART}</button><button class="like share" type="button" data-share="${f.i}" aria-label="Dalintis">${SHARE}</button></div>
     </div>
     ${x ? dayNote(x) : ""}${sessionsBlock(ss)}${filmStream(f)}
   </article>`;
@@ -370,7 +372,7 @@ function openFilm(i) {
     <button class="sh-close" type="button" aria-label="Uždaryti">×</button>
     <div class="sh-top">${poster(f, true)}
       <div style="min-width:0"><h2 id="sheetTitle">${esc(f.title)}</h2>${f.orig ? `<div class="orig">${esc(f.orig)}${f.year ? `, ${f.year}` : ""}</div>` : ""}${meta(f)}
-        <button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka" style="margin-top:10px">${HEART}</button></div>
+        <div class="acts row" style="margin-top:10px"><button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka">${HEART}</button><button class="like share" type="button" data-share="${f.i}" aria-label="Dalintis">${SHARE}</button></div></div>
     </div>
     ${sheetInfo(f)}
     <div class="status" style="margin:4px 0 0">${esc(dayLabel(state.day))}</div>
@@ -389,7 +391,7 @@ function sheetTop(f) {
   return `<button class="sh-close" type="button" aria-label="Uždaryti">×</button>
     <div class="sh-top">${poster(f, true)}
       <div style="min-width:0"><h2 id="sheetTitle">${esc(f.title)}</h2>${f.orig ? `<div class="orig">${esc(f.orig)}${f.year ? `, ${f.year}` : ""}</div>` : ""}${meta(f)}
-        <button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka" style="margin-top:10px">${HEART}</button></div>
+        <div class="acts row" style="margin-top:10px"><button class="like" type="button" data-like="${esc(f.id)}" aria-pressed="${state.liked.has(f.id)}" aria-label="Patinka">${HEART}</button><button class="like share" type="button" data-share="${f.i}" aria-label="Dalintis">${SHARE}</button></div></div>
     </div>`;
 }
 function sheetInfo(f) {
@@ -411,6 +413,43 @@ function openFilmAll(i) {
   if (!dlg.open) dlg.showModal();
   dlg.scrollTop = 0;
 }
+/* ---------- dalijimasis filmo nuoroda ---------- */
+const MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function filmUrl(f) { return PAGES[f.title] ? `https://kinai.lt/filmai/${PAGES[f.title]}/` : `https://kinai.lt/?f=${encodeURIComponent(f.id)}`; }
+function openShare(i) {
+  const f = FILMS[i], url = filmUrl(f), text = `${f.title} – seansai Vilniaus kino teatruose`;
+  const u = encodeURIComponent(url), tu = encodeURIComponent(`${text} ${url}`);
+  const items = [
+    ["copy", "Kopijuoti nuorodą", "", "#6b6472"],
+    ["wa", "WhatsApp", `https://wa.me/?text=${tu}`, "#1fa855"],
+    ["vb", "Viber", `viber://forward?text=${tu}`, "#7360f2"],
+    ["ms", "Messenger", MOBILE ? `fb-messenger://share/?link=${u}` : "", "#0a7cff"],
+    ["sms", "SMS", `sms:${/iPhone|iPad|iPod/i.test(navigator.userAgent) ? "&" : "?"}body=${tu}`, "#34a853"],
+  ];
+  if (navigator.share && MOBILE) items.push(["more", "Daugiau…", "", "#1d1a24"]);
+  const dlg = $("#shareDlg");
+  dlg.innerHTML = `<div class="sh-in"><button class="sh-close" type="button" aria-label="Uždaryti">×</button>
+    <h2 class="au-h" style="font-size:24px">Dalintis</h2><p class="au-p">${esc(f.title)}</p>
+    <div class="share-grid">${items.map(([k, l, href, c]) =>
+      href ? `<a class="sbtn2" data-sk="${k}" href="${esc(href)}" ${k === "wa" ? 'target="_blank" rel="noopener"' : ""}><i style="background:${c}"></i>${l}</a>`
+           : `<button class="sbtn2" type="button" data-sk="${k}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>
+    <input class="share-url" readonly value="${esc(url)}" aria-label="Filmo nuoroda"><p class="au-msg ok" role="status"></p></div>`;
+  const say = (t) => (dlg.querySelector(".au-msg").textContent = t);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); }
+    catch { const inp = dlg.querySelector(".share-url"); inp.select(); document.execCommand("copy"); }
+  };
+  dlg.onclick = async (e) => {
+    if (e.target === dlg || e.target.closest(".sh-close")) return dlg.close();
+    const b = e.target.closest("[data-sk]"); if (!b) return;
+    const k = b.dataset.sk;
+    if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "dalintis/" + k, title: f.title, event: true });
+    if (k === "copy") { await copy(); say("Nuoroda nukopijuota ✓"); }
+    else if (k === "ms" && !MOBILE) { await copy(); say("Nuoroda nukopijuota – įklijuokite ją Messenger pokalbyje."); window.open("https://www.messenger.com/", "_blank", "noopener"); }
+    else if (k === "more") { try { await navigator.share({ title: f.title, text, url }); } catch {} }
+  };
+  if (!dlg.open) dlg.showModal();
+}
 function toggleLike(btn) {
   const id = btn.dataset.like;
   state.liked.has(id) ? state.liked.delete(id) : state.liked.add(id);
@@ -420,6 +459,7 @@ function toggleLike(btn) {
 }
 function onMainClick(e) {
   const like = e.target.closest("[data-like]"); if (like) return toggleLike(like);
+  const sh = e.target.closest("[data-share]"); if (sh) return openShare(+sh.dataset.share);
   const g = e.target.closest("[data-g]");
   if (g) { const v = g.dataset.g; state.favGenres.has(v) ? state.favGenres.delete(v) : state.favGenres.add(v); savePrefs(); return render(); }
   if (e.target.closest("[data-login]")) return window.kinaiAuth && window.kinaiAuth.open();
@@ -432,6 +472,8 @@ load().then(() => {
   buildStatic(); buildDays(); buildFrom(); wire();
   document.querySelectorAll("nav.tabs [data-tab]").forEach((x) => x.setAttribute("aria-selected", x.dataset.tab === state.tab));
   render();
+  const deep = new URLSearchParams(location.search).get("f");
+  if (deep) { const f = FILMS.find((x) => x.id === deep); if (f) openFilm(f.i); }
   requestAnimationFrame(() => { const a = $("#days [aria-pressed='true']"); if (a) a.scrollIntoView({ inline: "center", block: "nearest" }); });
 }).catch((e) => {
   $("#main").innerHTML = `<div class="empty"><strong>Nepavyko įkelti repertuaro</strong>Pabandykite atnaujinti puslapį po kelių minučių.</div>`;
