@@ -47,6 +47,25 @@ Toliau viskas vyksta savaime. Jei paleidimas nepavyksta, GitHub atsiunčia laiš
 3. GitHub: *Settings → Pages → Custom domain* įrašyk `kinai.lt` → *Save*. Kai DNS įsigalios (nuo kelių minučių iki para), pažymėk *Enforce HTTPS*.
 4. Rekomenduojama: *Settings → Pages* viršuje patvirtink domeną (*Verify domain*), kad niekas kitas negalėtų jo prijungti prie savo GitHub puslapio.
 
+## Lankytojų prisijungimas (Google ir el. paštas)
+
+Lankytojai gali prisijungti per Google arba el. paštu su slaptažodžiu. Tada jų širdelės, mėgstami žanrai ir kino teatrai saugomi paskyroje ir rekomendacijos („Tau“ skiltis) būna tos pačios visuose įrenginiuose. Be prisijungimo viskas veikia kaip anksčiau – pomėgiai saugomi tik naršyklėje.
+
+Naudojama **Firebase** (Google) – nemokamo plano užtenka. Failai: `site/auth.js` (prisijungimas ir sinchronizavimas), `site/firebase-config.js` (projekto raktai), `firestore.rules` (duomenų apsauga). Kol `firebase-config.js` tuščias, mygtukas „Prisijungti“ nerodomas.
+
+Vieną kartą (~10 min.):
+
+1. **console.firebase.google.com** → *Create a project* → pavadinimas `kinai-lt` (Google Analytics nebūtina).
+2. **Web programėlė:** projekto pradžioje spausk `</>` → pavadinimas `kinai.lt` → *Register app*. Nukopijuok rodomus `apiKey`, `authDomain`, `projectId`, `appId` į `site/firebase-config.js`.
+3. **Authentication** → *Get started* → *Sign-in method*: įjunk **Google** (nurodyk palaikymo el. paštą) ir **Email/Password**.
+4. **Authentication → Settings → Authorized domains** → *Add domain*: `kinai.lt` ir `www.kinai.lt`.
+5. **Firestore Database** → *Create database* → vieta `eur3 (europe-west)` → *production mode*. Skirtuke *Rules* įklijuok `firestore.rules` turinį → *Publish*.
+6. Laiškų kalba (slaptažodžio atkūrimas, patvirtinimas): *Authentication → Templates* → kalba *Lithuanian*.
+
+Vėliau galima pridėti Apple (reikia Apple Developer paskyros), Facebook ir telefono numerį – *Sign-in method* sąraše, o `auth.js` papildyti atitinkamu mygtuku.
+
+Duomenys Firestore: `users/{uid}` → `liked` (patikę filmai, normalizuotais pavadinimais), `favGenres`, `cinemas`, `name`, `updated`. Lankytojas mato ir keičia tik savo įrašą. Paskyrą ištrinti: *Authentication → Users* ir *Firestore → users*.
+
 ## Kaip veikia duomenų rinkimas
 
 | Kino teatras | Šaltinis | Ką gauname |
