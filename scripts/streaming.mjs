@@ -106,7 +106,12 @@ async function omdb(t, y, kind, id) {
   const now = new Date().getFullYear();
   const tries = y ? [`&y=${y}`, ""] : [`&y=${now}`, `&y=${now - 1}`, ""];
   let r = null;
-  for (const t of tries) { r = await q(t); if (r && r.Response === "True") break; }
+  for (const x of tries) {
+    r = await q(x);
+    // Spėtų metų atitikmuo tinka tik jei pavadinimas sutampa tiksliai (kitaip „Ice Age“ virstų 2026 m. tęsiniu).
+    if (r && r.Response === "True" && (y || !x || norm(r.Title) === norm(t))) break;
+    r = null;
+  }
   return r && r.Response === "True" ? r : null;
 }
 async function imdbSuggest(t, y) {
@@ -114,7 +119,8 @@ async function imdbSuggest(t, y) {
     const j = await getJSON(`https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(norm(t).slice(0, 60))}.json`);
     const c = (j.d || []).filter((x) => /^tt/.test(x.id));
     const now = new Date().getFullYear();
-    return c.find((x) => (y ? Math.abs((x.y || 0) - y) <= 1 : (x.y || 0) >= now - 1)) || c[0] || null;
+    const exact = c.filter((x) => norm(x.l) === norm(t));
+    return (y ? c.find((x) => Math.abs((x.y || 0) - y) <= 1) : exact.find((x) => (x.y || 0) >= now - 1) || exact[0]) || c[0] || null;
   } catch { return null; }
 }
 for (const p of platforms) {
