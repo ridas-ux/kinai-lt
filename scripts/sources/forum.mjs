@@ -1,9 +1,13 @@
-// Forum Cinemas Vingis – restapi.forumcinemas.lt (tas pats API, kurį naudoja jų svetainė).
+// Forum Cinemas (Vingis, Kaunas, Klaipėda) – restapi.forumcinemas.lt (tas pats API, kurį naudoja jų svetainė).
 import { getJSON, cleanTitle, genres, age, stripHtml, youtube, sleep } from "../lib.mjs";
 
 const API = "https://restapi.forumcinemas.lt/api";
-const REGION_VILNIUS = "e9202daa-51f9-4de9-8811-3076ad5449be";
-const CINEMA_VINGIS = "f933f355-2e6b-466f-9b97-e267ecd8e266";
+// regionas -> { Forum kino teatro id -> mūsų kodas }
+const REGIONS = {
+  "e9202daa-51f9-4de9-8811-3076ad5449be": { "f933f355-2e6b-466f-9b97-e267ecd8e266": "fv" }, // Vingis, Vilnius
+  "8de15094-3a6e-420b-8c81-39362095d37e": { "b4662f38-8b50-4533-9eb8-c26ae4394a78": "fk" }, // Kaunas (Akropolis)
+  "cb184608-bf53-4bf5-8d87-c9f9667a9da0": { "40025d9f-a5cd-4bb9-bd4b-d01c52558731": "fkl" }, // Klaipėda (Akropolis)
+};
 
 function nextDay(day) {
   const d = new Date(day + "T12:00:00Z");
@@ -14,11 +18,13 @@ function nextDay(day) {
 export async function forum(days) {
   const sessions = [];
   const movieIds = new Set();
-  for (const day of days) {
-    const url = `${API}/region/${REGION_VILNIUS}/screening?dateTimeFrom=${day}T02:00:00.000&dateTimeTo=${nextDay(day)}T01:59:59.999&movieId=null`;
-    const list = await getJSON(url);
+  for (const [region, cins] of Object.entries(REGIONS)) for (const day of days) {
+    const url = `${API}/region/${region}/screening?dateTimeFrom=${day}T02:00:00.000&dateTimeTo=${nextDay(day)}T01:59:59.999&movieId=null`;
+    let list;
+    try { list = await getJSON(url); } catch (e) { console.warn("Forum", region, day, e.message); continue; }
     for (const s of list) {
-      if (s.cinemaId !== CINEMA_VINGIS) continue;
+      const code = cins[s.cinemaId];
+      if (!code) continue;
       movieIds.add(s.movieId);
       const tags = [];
       const pt = (s.printType || "").replace(/\b2D\b/, "").trim();
@@ -26,7 +32,7 @@ export async function forum(days) {
       for (const f of s.screenFeatures || []) if (!tags.includes(f)) tags.push(f);
       if (s.speakingType === "DUB" || /dubliuot/i.test(s.release || "")) tags.push("Dubliuotas");
       sessions.push({
-        film: `forum:${s.movieId}`, cinema: "fv", start: s.screeningTimeFrom.slice(0, 16),
+        film: `forum:${s.movieId}`, cinema: code, start: s.screeningTimeFrom.slice(0, 16),
         url: `https://forumcinemas.lt/lt/ekranas/?id=${s.id}&cid=${s.cinemaId}`, tags,
       });
     }
@@ -46,5 +52,5 @@ export async function forum(days) {
       await sleep(150);
     } catch (e) { console.warn("Forum movie", id, e.message); }
   }
-  return { films, sessions, cinemas: ["fv"] };
+  return { films, sessions, cinemas: ["fv", "fk", "fkl"] };
 }
