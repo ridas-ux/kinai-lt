@@ -221,3 +221,7 @@ dialog.sheet.auth{max-width:440px}
 .hc-b{display:grid;gap:4px}
 .hb{display:block;text-align:center;font-size:12px;font-weight:700;text-decoration:none;padding:7px 6px;border-radius:8px;color:#fff}
 .hb.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+/* Miestai */
+.cities .chip.city{font-size:14px;padding:7px 14px}
+.chip small{font-weight:400;opacity:.7;margin-left:2px}
+.cname .cc{font-style:normal;font-weight:400;font-size:12px;color:var(--muted)}
