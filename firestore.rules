@@ -1,0 +1,13 @@
+rules_version = '2';
+// Kiekvienas prisijungęs lankytojas gali skaityti ir rašyti tik savo pomėgius (users/{uid}).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(["liked", "favGenres", "cinemas", "name", "updated"])
+        && request.resource.data.liked is list && request.resource.data.liked.size() <= 2000
+        && request.resource.data.favGenres is list && request.resource.data.favGenres.size() <= 100;
+    }
+  }
+}
