@@ -168,3 +168,32 @@ dialog.sheet::backdrop{background:rgba(10,8,14,.55)}
 .dnote b{color:var(--ink);font-weight:700}
 .dnote .prem{background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:12px;border-radius:999px;padding:2px 9px}
 .dnote + .cin{border-top:0;padding-top:4px}
+/* Paskyra ir prisijungimas */
+.brand .acct{margin-left:auto;flex:none;height:34px;min-width:34px;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;display:flex;align-items:center;gap:6px;padding:0 12px 0 9px;cursor:pointer;font-size:13px;font-weight:600}
+.brand .acct svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2}
+.brand .acct.in{padding:0;width:34px;justify-content:center;overflow:hidden;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.brand .acct img{width:100%;height:100%;object-fit:cover}
+.brand .acct b{font-size:15px}
+.brand .bulbs{margin-left:auto}
+.brand .bulbs + .acct:not([hidden]){margin-left:0}
+dialog.sheet.auth{max-width:440px}
+.au-h{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;margin:0;text-transform:uppercase}
+.au-p{margin:0;font-size:14px;color:var(--muted)}
+.au-p b{color:var(--ink)}
+.au-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;border-radius:12px;border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);font-weight:700;font-size:15px;cursor:pointer;padding:0 14px}
+.au-btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.au-btn.google{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.au-btn svg{width:20px;height:20px}
+.au-btn:disabled{opacity:.55;cursor:default}
+.au-or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.au-or::before,.au-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.au-form{display:grid;gap:10px}
+.au-form label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.au-form input{font-size:16px;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%}
+.au-form input:focus{border-color:var(--ink);outline:none}
+.au-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.au-msg{margin:0;min-height:1.2em;font-size:14px;color:var(--accent);font-weight:600}
+.au-msg.ok{color:var(--ink)}
+.au-small{margin:0;font-size:11px;color:var(--muted)}
+.linkbtn{border:0;background:none;padding:0;color:var(--ink);text-decoration:underline;font:inherit;cursor:pointer;justify-self:start}
+.au-form .linkbtn{font-size:13px;color:var(--muted)}
