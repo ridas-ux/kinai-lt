@@ -197,3 +197,11 @@ dialog.sheet.auth{max-width:440px}
 .au-small{margin:0;font-size:11px;color:var(--muted)}
 .linkbtn{border:0;background:none;padding:0;color:var(--ink);text-decoration:underline;font:inherit;cursor:pointer;justify-self:start}
 .au-form .linkbtn{font-size:13px;color:var(--muted)}
+/* Dalijimasis */
+.acts{display:grid;gap:8px;align-content:start}
+.acts.row{display:flex}
+.like.share svg{fill:none;stroke:var(--muted);stroke-width:2}
+.share-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sbtn2{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:600;font-size:15px;text-decoration:none;cursor:pointer;text-align:left}
+.sbtn2 i{width:12px;height:12px;border-radius:50%;flex:none}
+.share-url{width:100%;font:13px var(--mono);padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--muted)}
