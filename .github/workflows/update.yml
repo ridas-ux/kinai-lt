@@ -53,6 +53,11 @@ jobs:
             sleep $((i*5))
           done
 
+      - name: Naršyklės talpyklos apėjimas (app.js, style.css ir kt. su versija)
+        run: |
+          v=$(echo "$GITHUB_SHA" | cut -c1-8)
+          sed -i -E "s#(src|href)=\"(app\.js|auth\.js|firebase-config\.js|style\.css)\"#\1=\"\2?v=$v\"#g" site/index.html
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
