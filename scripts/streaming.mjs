@@ -94,7 +94,7 @@ for (const [k, name, fn] of PLATFORMS) {
 
 /* ---------- plakatai, vertinimai, anonsai ---------- */
 const cache = new Map();
-for (const p of (previous && previous.platforms) || []) for (const l of p.lists || []) for (const it of l.items || []) if (it.imdb || (!OMDB && it.imdbId)) cache.set(norm(it.o || it.t) + "|" + (it.y || ""), it);
+for (const p of (previous && previous.platforms) || []) for (const l of p.lists || []) for (const it of l.items || []) if (it.imdb || (!OMDB && it.imdbId)) cache.set(norm(it.o || it.t) + "|" + (it.y0 ?? ""), it);
 let omdbCalls = 0;
 async function omdb(t, y, kind, id) {
   if (!OMDB || omdbCalls > 400) return null;
@@ -102,15 +102,19 @@ async function omdb(t, y, kind, id) {
   if (id) { const r = await getJSON(`https://www.omdbapi.com/?apikey=${OMDB}&i=${id}`).catch(() => null); return r && r.Response === "True" ? r : null; }
   const type = kind === "Serialas" ? "&type=series" : kind === "Filmas" ? "&type=movie" : "";
   const q = (extra) => getJSON(`https://www.omdbapi.com/?apikey=${OMDB}&t=${encodeURIComponent(t)}${type}${extra}`).catch(() => null);
-  let r = await q(y ? `&y=${y}` : "");
-  if ((!r || r.Response === "False") && y) r = await q("");
+  // Be metų (Netflix) pirmiausia ieškome naujausių: tas pats pavadinimas dažnai turi senesnį filmą.
+  const now = new Date().getFullYear();
+  const tries = y ? [`&y=${y}`, ""] : [`&y=${now}`, `&y=${now - 1}`, ""];
+  let r = null;
+  for (const t of tries) { r = await q(t); if (r && r.Response === "True") break; }
   return r && r.Response === "True" ? r : null;
 }
 async function imdbSuggest(t, y) {
   try {
     const j = await getJSON(`https://v3.sg.media-imdb.com/suggestion/x/${encodeURIComponent(norm(t).slice(0, 60))}.json`);
     const c = (j.d || []).filter((x) => /^tt/.test(x.id));
-    return c.find((x) => !y || Math.abs((x.y || 0) - y) <= 1) || c[0] || null;
+    const now = new Date().getFullYear();
+    return c.find((x) => (y ? Math.abs((x.y || 0) - y) <= 1 : (x.y || 0) >= now - 1)) || c[0] || null;
   } catch { return null; }
 }
 for (const p of platforms) {
@@ -118,7 +122,8 @@ for (const p of platforms) {
   for (const l of p.lists) {
     for (const it of l.items) {
       const title = it.o || it.t;
-      const old = cache.get(norm(title) + "|" + (it.y || ""));
+      it.y0 = it.y || 0; // šaltinio metai (Netflix jų neturi) – pagal juos ir talpykla
+      const old = cache.get(norm(title) + "|" + it.y0);
       if (old) { for (const f of ["imdbId", "imdb", "rt", "poster", "y", "plot"]) if (!it[f] && old[f]) it[f] = old[f]; }
       else {
         let o = await omdb(title, it.y, it.kind);
