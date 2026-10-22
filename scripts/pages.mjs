@@ -14,7 +14,15 @@ const CINEMAS = {
   ps: ["Senamiesčio „Pasaka“", "Šv. Ignoto g. 4/3, Vilnius"],
   pp: ["Paupio „Pasaka“", "Paupio g. 26, Vilnius"],
   sk: ["Skalvija", "A. Goštauto g. 2, Vilnius"],
+  fk: ["Forum Cinemas Kaunas", "PC Akropolis, Karaliaus Mindaugo pr. 49, Kaunas"],
+  cm: ["Cinamon Mega", "PC Mega, Islandijos pl. 32, Kaunas"],
+  rk: ["Kino centras „Romuva“", "Laisvės al. 54, Kaunas"],
+  fkl: ["Forum Cinemas Klaipėda", "PC Akropolis, Taikos pr. 61, Klaipėda"],
 };
+const CITY_ORDER = ["Vilnius", "Kaunas", "Klaipėda"];
+const CITY_LOC = { Vilnius: "Vilniuje", Kaunas: "Kaune", Klaipėda: "Klaipėdoje" };
+const CITY_GEN = { Vilnius: "Vilniaus", Kaunas: "Kauno", Klaipėda: "Klaipėdos" };
+const joinLt = (a) => (a.length > 1 ? a.slice(0, -1).join(", ") + " ir " + a.at(-1) : a[0] || "");
 const WDL = ["sekmadienis", "pirmadienis", "antradienis", "trečiadienis", "ketvirtadienis", "penktadienis", "šeštadienis"];
 const MONTHS = ["sausio", "vasario", "kovo", "balandžio", "gegužės", "birželio", "liepos", "rugpjūčio", "rugsėjo", "spalio", "lapkričio", "gruodžio"];
 
@@ -83,8 +91,10 @@ for (let i = 0; i < data.films.length; i++) {
   if (!ss.length) continue;
   const url = `${SITE}/filmai/${s}/`;
   const cinemasHere = [...new Set(ss.map((x) => CINEMAS[x.c][0]))];
-  const title = `${f.title} – seansai Vilniuje, bilietai | Kinai.lt`;
-  const desc = `${f.title}${f.orig ? ` (${f.orig})` : ""} Vilniaus kino teatruose: ${cinemasHere.join(", ")}. ${ss.length} seansai artimiausiomis dienomis. ${(f.desc || "").slice(0, 110)}`.trim();
+  const cities = CITY_ORDER.filter((c) => ss.some((x) => CINEMAS[x.c][1].endsWith(c)));
+  const where = joinLt(cities.map((c) => CITY_LOC[c]));
+  const title = `${f.title} – seansai ${where}, bilietai | Kinai.lt`;
+  const desc = `${f.title}${f.orig ? ` (${f.orig})` : ""} ${joinLt(cities.map((c) => CITY_GEN[c]))} kino teatruose: ${cinemasHere.join(", ")}. ${ss.length} seansai artimiausiomis dienomis. ${(f.desc || "").slice(0, 110)}`.trim();
 
   const byDay = {};
   for (const x of ss) (byDay[x.t.slice(0, 10)] ||= []).push(x);
@@ -131,8 +141,8 @@ for (let i = 0; i < data.films.length; i++) {
     </div>
   </div>
   ${f.desc ? `<p class="desc-full">${esc(f.desc)}</p>` : ""}
-  <section><h2 class="day-h" style="margin-top:0">Seansai Vilniuje</h2><p class="hint">Paspauskite laiką, kad pirktumėte bilietą kino teatro svetainėje</p>${daysHtml}</section>
-  <a class="back" href="../../">← Visas Vilniaus repertuaras</a>
+  <section><h2 class="day-h" style="margin-top:0">Seansai ${esc(where)}</h2><p class="hint">Paspauskite laiką, kad pirktumėte bilietą kino teatro svetainėje</p>${daysHtml}</section>
+  <a class="back" href="../../">← Visas repertuaras</a>
   <footer><p>Seansai atnaujinami kasdien. Bilietus parduoda patys kino teatrai.</p></footer>
 </main>
 <script>document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a.t");if(a&&window.goatcounter&&window.goatcounter.count){window.goatcounter.count({path:"bilietas/"+(a.dataset.c||"?"),title:${JSON.stringify(f.title)},event:true})}});</script>
