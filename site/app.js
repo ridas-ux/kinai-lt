@@ -562,6 +562,25 @@ function onMainClick(e) {
   if (e.target.id === "more") { state.limit += 30; render(); }
 }
 
+/* ---------- naršyklės „Atgal“ uždaro atidarytą langą, o ne išeina iš svetainės ---------- */
+(function backClosesDialogs() {
+  const show = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () {
+    show.call(this);
+    // Vienas istorijos įrašas visiems atidarytiems langams (pvz. filmas → dalintis).
+    if (!(history.state && history.state.dlg)) history.pushState({ dlg: 1 }, "", location.href);
+  };
+  // Uždarius langą mygtuku ×, fonu ar Esc – nuimam savo istorijos įrašą.
+  document.addEventListener("close", () => {
+    if (!document.querySelector("dialog[open]") && history.state && history.state.dlg) history.back();
+  }, true);
+  window.addEventListener("popstate", () => {
+    document.querySelectorAll("dialog[open]").forEach((d) => d.close());
+    const t = (location.hash || "").slice(1);
+    if (t !== state.tab && ["filmai", "teatrai", "namuose", "tau"].includes(t)) setTab(t);
+  });
+})();
+
 /* ---------- start ---------- */
 load().then(() => {
   buildStatic(); buildDays(); buildFrom(); wire();
